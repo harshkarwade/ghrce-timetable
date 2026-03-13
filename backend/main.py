@@ -22,24 +22,11 @@ app = FastAPI(
     version="2.0.1"
 )
 
-# ── CORS — reads FRONTEND_URL env var; falls back to all origins ──────────────
-frontend_url = os.getenv("FRONTEND_URL", "*")
-# Include all known Vercel origins for this project
-allow_origins = [
-    "https://frontend-inky-alpha-47.vercel.app",
-    "https://frontend-inky-alpha-47-harshkarwade.vercel.app",
-    "https://frontend-5jkgkee8z-harshkarwade-7068s-projects.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:3001",
-]
-
-if frontend_url != "*" and frontend_url not in allow_origins:
-    allow_origins.append(frontend_url.rstrip("/"))
-
+# ── CORS — Allow all for production launch as we use JWT in headers ──────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

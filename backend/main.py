@@ -24,9 +24,11 @@ app = FastAPI(
 
 # ── CORS — reads FRONTEND_URL env var; falls back to all origins ──────────────
 frontend_url = os.getenv("FRONTEND_URL", "*")
-# For credentials=True, origins must be a specific list, not ["*"]
+# Include all known Vercel origins for this project
 allow_origins = [
     "https://frontend-inky-alpha-47.vercel.app",
+    "https://frontend-inky-alpha-47-harshkarwade.vercel.app",
+    "https://frontend-5jkgkee8z-harshkarwade-7068s-projects.vercel.app",
     "http://localhost:3000",
     "http://localhost:3001",
 ]

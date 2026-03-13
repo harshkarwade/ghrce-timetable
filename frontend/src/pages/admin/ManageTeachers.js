@@ -1,0 +1,140 @@
+import { useEffect, useState } from "react";
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getDepartments, getSubjects } from "../../services/api";
+import toast from "react-hot-toast";
+
+export default function ManageTeachers() {
+  const [teachers, setTeachers] = useState([]);
+  const [depts, setDepts] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", dept_id: "", max_load: 5, email: "", password: "teacher123", subject_ids: [] });
+
+  const load = () => getTeachers().then(r => setTeachers(r.data)).catch(() => {});
+
+  useEffect(() => {
+    load();
+    getDepartments().then(r => setDepts(r.data)).catch(() => {});
+    getSubjects().then(r => setSubjects(r.data)).catch(() => {});
+  }, []);
+
+  const handleCreate = async () => {
+    if (!form.name || !form.dept_id) { toast.error("Name and department required"); return; }
+    try {
+      await createTeacher({ ...form, dept_id: +form.dept_id });
+      toast.success("Teacher created");
+      setShowForm(false);
+      setForm({ name: "", dept_id: "", max_load: 5, email: "", password: "teacher123", subject_ids: [] });
+      load();
+    } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+  };
+
+  const handleToggleStatus = async (t) => {
+    const newStatus = t.status === "present" ? "absent" : "present";
+    try {
+      await updateTeacher(t.id, { status: newStatus });
+      setTeachers(prev => prev.map(x => x.id === t.id ? { ...x, status: newStatus } : x));
+    } catch { toast.error("Error"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this teacher?")) return;
+    try {
+      await deleteTeacher(id);
+      toast.success("Deleted");
+      load();
+    } catch { toast.error("Error"); }
+  };
+
+  const toggleSubject = (id) => {
+    setForm(p => ({
+      ...p,
+      subject_ids: p.subject_ids.includes(id) ? p.subject_ids.filter(x => x !== id) : [...p.subject_ids, id]
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">Manage Teachers</h2>
+          <p className="text-gray-400 text-sm">{teachers.length} registered</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium">
+          + Add Teacher
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-gray-900/60 border border-indigo-500/30 rounded-xl p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-indigo-300">Add New Teacher</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { key: "name", label: "Full Name", placeholder: "Dr. First Last" },
+              { key: "email", label: "Email", placeholder: "teacher@ghrce.edu" },
+              { key: "password", label: "Password", placeholder: "teacher123" },
+            ].map(f => (
+              <div key={f.key} className={f.key === "name" ? "col-span-2" : ""}>
+                <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
+                <input value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            ))}
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Department</label>
+              <select value={form.dept_id} onChange={e => setForm(p => ({ ...p, dept_id: e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500">
+                <option value="">Select…</option>
+                {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Max Load/Day</label>
+              <input type="number" min={1} max={8} value={form.max_load} onChange={e => setForm(p => ({ ...p, max_load: +e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-400 mb-2 block">Assign Subjects</label>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map(s => (
+                  <button key={s.id} type="button" onClick={() => toggleSubject(s.id)}
+                    className={`px-2 py-1 rounded-lg text-xs transition-all ${form.subject_ids.includes(s.id) ? "bg-indigo-600 text-white" : "bg-gray-700 text-gray-400"}`}>
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={handleCreate} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Save</button>
+            <button onClick={() => setShowForm(false)} className="bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {teachers.map(t => (
+          <div key={t.id} className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center font-bold flex-shrink-0">{t.avatar || "?"}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-200">{t.name}</div>
+              <div className="text-xs text-gray-400">{t.department?.name}</div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {t.subjects?.map(s => (
+                  <span key={s.id} className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">{s.name}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${t.status === "present" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-red-500/20 text-red-300 border-red-500/30"}`}>
+                {t.status}
+              </span>
+              <button onClick={() => handleToggleStatus(t)} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg">Toggle</button>
+              <button onClick={() => handleDelete(t.id)} className="text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 px-3 py-1.5 rounded-lg">Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

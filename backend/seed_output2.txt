@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\seed.py", line 10, in <module>
+    from app.core.database import SessionLocal, engine, Base
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\app\core\database.py", line 4, in <module>
+    from app.core.config import settings
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\app\core\config.py", line 1, in <module>
+    from pydantic_settings import BaseSettings
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic_settings\__init__.py", line 1, in <module>
+    from .main import BaseSettings, SettingsConfigDict
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic_settings\main.py", line 6, in <module>
+    from pydantic import ConfigDict
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic\__init__.py", line 395, in __getattr__
+    module = import_module(module_name, package=package)
+  File "C:\Python314\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic\config.py", line 9, in <module>
+    from .aliases import AliasGenerator
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic\aliases.py", line 7, in <module>
+    from pydantic_core import PydanticUndefined
+  File "C:\Users\ASUS\Downloads\GHRCE-AI-Timetable-v3\ghrce-timetable\backend\venv\Lib\site-packages\pydantic_core\__init__.py", line 6, in <module>
+    from ._pydantic_core import (
+    ...<22 lines>...
+    )
+ModuleNotFoundError: No module named 'pydantic_core._pydantic_core'

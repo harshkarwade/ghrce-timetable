@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ghrce-timetable-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # You will set this manually in Render dashboard
+      - key: SECRET_KEY
+        value: ghrce-super-secret-key-change-in-production-2024
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: DEBUG
+        value: false
+      - key: APP_NAME
+        value: GHRCE AI Timetable System
+      - key: FRONTEND_URL
+        sync: false          # You will set this to your Vercel URL after deploying frontend

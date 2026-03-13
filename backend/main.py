@@ -1,6 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, teachers, subjects, rooms, timetable, attendance, analytics, students, leaves, notices, uploads
+from app.routers.auth import router as auth_router
+from app.routers.teachers import router as teachers_router
+from app.routers.subjects import router as subjects_router
+from app.routers.rooms import router as rooms_router
+from app.routers.timetable import router as timetable_router
+from app.routers.attendance import router as attendance_router
+from app.routers.analytics import router as analytics_router
+from app.routers.students import router as students_router
+from app.routers.leaves import router as leaves_router
+from app.routers.notices import router as notices_router
+from app.routers.uploads import router as uploads_router
 from app.core.database import engine, Base
 import os
 
@@ -9,7 +19,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="GHRCE AI Timetable System",
     description="AI-powered Master Timetable Generator for GH Raisoni College of Engineering",
-    version="2.0.0"
+    version="2.0.1"
 )
 
 # ── CORS — reads FRONTEND_URL env var; falls back to all origins ──────────────
@@ -32,17 +42,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router,       prefix="/api/auth",       tags=["Authentication"])
-app.include_router(teachers.router,   prefix="/api/teachers",   tags=["Teachers"])
-app.include_router(subjects.router,   prefix="/api/subjects",   tags=["Subjects"])
-app.include_router(rooms.router,      prefix="/api/rooms",      tags=["Rooms"])
-app.include_router(timetable.router,  prefix="/api/timetable",  tags=["Timetable"])
-app.include_router(attendance.router, prefix="/api/attendance", tags=["Attendance"])
-app.include_router(analytics.router,  prefix="/api/analytics",  tags=["Analytics"])
-app.include_router(students.router,   prefix="/api/students",   tags=["Students"])
-app.include_router(leaves.router,     prefix="/api/leaves",     tags=["Leaves"])
-app.include_router(notices.router,    prefix="/api/notices",    tags=["Notices"])
-app.include_router(uploads.router,    prefix="/api/uploads",    tags=["Uploads"])
+app.include_router(auth_router,       prefix="/api/auth",       tags=["Authentication"])
+app.include_router(teachers_router,   prefix="/api/teachers",   tags=["Teachers"])
+app.include_router(subjects_router,   prefix="/api/subjects",   tags=["Subjects"])
+app.include_router(rooms_router,      prefix="/api/rooms",      tags=["Rooms"])
+app.include_router(timetable_router,  prefix="/api/timetable",  tags=["Timetable"])
+app.include_router(attendance_router, prefix="/api/attendance", tags=["Attendance"])
+app.include_router(analytics_router,  prefix="/api/analytics",  tags=["Analytics"])
+app.include_router(students_router,   prefix="/api/students",   tags=["Students"])
+app.include_router(leaves_router,     prefix="/api/leaves",     tags=["Leaves"])
+app.include_router(notices_router,    prefix="/api/notices",    tags=["Notices"])
+app.include_router(uploads_router,    prefix="/api/uploads",    tags=["Uploads"])
 
 @app.get("/")
 def root():

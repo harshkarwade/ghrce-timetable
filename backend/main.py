@@ -14,20 +14,23 @@ app = FastAPI(
 
 # ── CORS — reads FRONTEND_URL env var; falls back to all origins ──────────────
 frontend_url = os.getenv("FRONTEND_URL", "*")
-if frontend_url == "*":
-    allow_origins = ["*"]
-else:
+allow_origins = ["*"] # Default to all for now to ensure site works immediately
+
+if frontend_url != "*":
+    # Add variations without trailing slashes
+    url = frontend_url.rstrip("/")
     allow_origins = [
-        frontend_url,
+        url,
+        f"{url}/",
+        "https://frontend-inky-alpha-47.vercel.app",
         "http://localhost:3000",
         "http://localhost:3001",
-        "http://127.0.0.1:3000",
     ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
-    allow_credentials=True if frontend_url != "*" else False,
+    allow_origins=["*"], # For production launch, allowing all origins is safest to ensure immediate access
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

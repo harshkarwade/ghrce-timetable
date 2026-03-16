@@ -9,6 +9,8 @@ const NAV = [
   { to: "/admin/teacher-timetables", label: "Teacher Timetables", icon: "👩‍🏫" },
   { to: "/admin/room-timetables", label: "Room / Lab Timetables", icon: "🏛️" },
   { to: "/admin/teachers", label: "Manage Teachers", icon: "👥" },
+  { to: "/admin/students", label: "Manage Students", icon: "👩‍🎓" },
+  { to: "/admin/leaves", label: "Leave Requests", icon: "🌴" },
   { to: "/admin/attendance", label: "Attendance & Reschedule", icon: "✅" },
   { to: "/admin/analytics", label: "Analytics", icon: "📊" },
 ];

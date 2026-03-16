@@ -18,6 +18,8 @@ import RoomTimetables from "./pages/admin/RoomTimetables";
 import ManageTeachers from "./pages/admin/ManageTeachers";
 import AttendanceReschedule from "./pages/admin/AttendanceReschedule";
 import Analytics from "./pages/admin/Analytics";
+import AdminLeaveRequests from "./pages/admin/AdminLeaveRequests";
+import AdminStudents from "./pages/admin/AdminStudents";
 
 // Teacher Pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -82,6 +84,8 @@ export default function App() {
           <Route path="teachers" element={<ManageTeachers />} />
           <Route path="attendance" element={<AttendanceReschedule />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="leaves" element={<AdminLeaveRequests />} />
+          <Route path="students" element={<AdminStudents />} />
         </Route>
 
         {/* Teacher Routes */}

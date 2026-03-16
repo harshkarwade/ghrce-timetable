@@ -85,4 +85,13 @@ export const getAttendanceTrends = () => API.get("/analytics/attendance-trends")
 export const getNotices = (role) => API.get(`/notices?target_role=${role}`);
 export const createNotice = (data) => API.post("/notices/", data);
 
+// ── Leaves (admin) ────────────────────────────────────────────────────────────
+export const getLeaveRequests = (params = {}) => API.get("/leaves/", { params });
+export const updateLeaveStatus = (id, status) =>
+  API.put(`/leaves/${id}`, { status });
+
+// ── Students ──────────────────────────────────────────────────────────────────
+export const getStudents = (params = {}) => API.get("/students/", { params });
+export const createStudent = (data) => API.post("/students/", data);
+
 export default API;

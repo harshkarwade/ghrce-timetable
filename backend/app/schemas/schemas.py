@@ -13,6 +13,7 @@ class TokenResponse(BaseModel):
     role: str
     user_id: int
     teacher_id: Optional[int] = None
+    student_id: Optional[int] = None
 
 # ── Department ────────────────────────────────────────────────────────────────
 class DepartmentOut(BaseModel):

@@ -13,6 +13,9 @@ from app.routers.notices import router as notices_router
 from app.routers.uploads import router as uploads_router
 from app.core.database import engine, Base
 import os
+import traceback
+from fastapi.responses import JSONResponse
+from fastapi import Request
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,6 +33,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc), "traceback": traceback.format_exc()},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
 
 app.include_router(auth_router,       prefix="/api/auth",       tags=["Authentication"])
 app.include_router(teachers_router,   prefix="/api/teachers",   tags=["Teachers"])

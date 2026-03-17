@@ -71,13 +71,20 @@ def generate_timetable(
 ):
     """AI-powered timetable generation using CSP + Backtracking."""
 
-    # Clear existing timetable for this semester
+    # Clear existing timetable for this semester, including dependent records
     query = db.query(TimetableEntry).filter(TimetableEntry.semester_year == req.semester_year)
     if req.department_id:
         classes_in_dept = db.query(Class.id).filter(Class.dept_id == req.department_id).subquery()
         query = query.filter(TimetableEntry.class_id.in_(classes_in_dept))
-    query.delete(synchronize_session=False)
-    db.commit()
+    
+    # Get IDs to clear dependencies first (foreign key constraints)
+    target_entry_ids = [e.id for e in query.with_entities(TimetableEntry.id).all()]
+    if target_entry_ids:
+        db.query(SubstituteAssignment).filter(SubstituteAssignment.timetable_entry_id.in_(target_entry_ids)).delete(synchronize_session=False)
+        db.query(StudentAttendance).filter(StudentAttendance.timetable_entry_id.in_(target_entry_ids)).delete(synchronize_session=False)
+        # Re-run query delete to be sure
+        db.query(TimetableEntry).filter(TimetableEntry.id.in_(target_entry_ids)).delete(synchronize_session=False)
+        db.commit()
 
     # Load all data
     classes = db.query(Class).all()

@@ -7,11 +7,11 @@ const CHART_COLORS = ["#6366f1","#8b5cf6","#06b6d4","#10b981","#f59e0b","#ef4444
 
 const StatCard = ({ icon, label, value, sub, color }) => {
   const colors = {
-    blue:   "from-blue-600/20 to-blue-800/5 border-blue-500/20 text-blue-400",
-    green:  "from-emerald-600/20 to-emerald-800/5 border-emerald-500/20 text-emerald-400",
-    purple: "from-purple-600/20 to-purple-800/5 border-purple-500/20 text-purple-400",
-    amber:  "from-amber-600/20 to-amber-800/5 border-amber-500/20 text-amber-400",
-    pink:   "from-pink-600/20 to-pink-800/5 border-pink-500/20 text-pink-400",
+    blue:   "from-blue-600/10 to-blue-800/5 dark:from-blue-600/20 dark:to-blue-800/5 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400",
+    green:  "from-emerald-600/10 to-emerald-800/5 dark:from-emerald-600/20 dark:to-emerald-800/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+    purple: "from-purple-600/10 to-purple-800/5 dark:from-purple-600/20 dark:to-purple-800/5 border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400",
+    amber:  "from-amber-600/10 to-amber-800/5 dark:from-amber-600/20 dark:to-amber-800/5 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400",
+    pink:   "from-pink-600/10 to-pink-800/5 dark:from-pink-600/20 dark:to-pink-800/5 border-pink-200 dark:border-pink-500/20 text-pink-600 dark:text-pink-400",
   };
   return (
     <div className={`bg-gradient-to-br ${colors[color]} border rounded-2xl p-5 shadow-lg relative overflow-hidden group`}>
@@ -20,7 +20,7 @@ const StatCard = ({ icon, label, value, sub, color }) => {
         <span className="text-3xl filter drop-shadow-md">{icon}</span>
         <span className="text-xs bg-black/20 px-2 py-1 rounded-full">{sub}</span>
       </div>
-      <div className="text-3xl font-bold text-white tracking-tight">{value ?? "—"}</div>
+      <div className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{value ?? "—"}</div>
       <div className={`text-xs font-semibold mt-1.5 uppercase ${colors[color].split(' ').pop()}`}>{label}</div>
     </div>
   );
@@ -31,11 +31,9 @@ export default function AdminDashboard() {
   const [workload, setWorkload] = useState([]);
   const [rooms, setRooms]       = useState([]);
   const [teachers, setTeachers] = useState([]);
-  const [attendance, setAttendance] = useState({ teacher: { present: 0, absent: 0 }, student: { present: 0, absent: 0 } });
-  const [notices, setNotices]   = useState([]);
+  const [attendance, setAttendance] = useState({ teacher: { present: 0, absent: 0 } });
   const [loading, setLoading]   = useState(true);
   const [noTimetable, setNoTimetable] = useState(false);
-  const [noticeForm, setNoticeForm] = useState({ title: "", content: "", target_role: "all" });
 
   useEffect(() => {
     fetchData();
@@ -47,29 +45,15 @@ export default function AdminDashboard() {
       getWorkload().catch(() => ({ data: [] })),
       getRoomUtilization().catch(() => ({ data: [] })),
       getTeachers().catch(() => ({ data: [] })),
-      getAttendanceTrends().catch(() => ({ data: { teacher: { present: 0, absent: 0 }, student: { present: 0, absent: 0 } } })),
-      getNotices('all').catch(() => ({ data: [] }))
-    ]).then(([sRes, wRes, rRes, tRes, aRes, nRes]) => {
+      getAttendanceTrends().catch(() => ({ data: { teacher: { present: 0, absent: 0 } } })),
+    ]).then(([sRes, wRes, rRes, tRes, aRes]) => {
       setSummary(sRes.data);
       setWorkload(wRes.data || []);
       setRooms(rRes.data || []);
       setTeachers(tRes.data || []);
-      setAttendance(aRes.data || { teacher: { present: 0, absent: 0 }, student: { present: 0, absent: 0 } });
-      setNotices(nRes.data || []);
+      setAttendance(aRes.data || { teacher: { present: 0, absent: 0 } });
       if (sRes.data?.total_lectures === 0) setNoTimetable(true);
     }).finally(() => setLoading(false));
-  };
-
-  const handlePostNotice = async (e) => {
-    e.preventDefault();
-    try {
-      await createNotice(noticeForm);
-      toast.success("Notice posted successfully!");
-      setNoticeForm({ title: "", content: "", target_role: "all" });
-      fetchData(); // refresh list
-    } catch (err) {
-      toast.error("Failed to post notice");
-    }
   };
 
   const workloadChart = workload
@@ -91,8 +75,8 @@ export default function AdminDashboard() {
     <div className="space-y-8 pb-10">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-sm">Command Center</h2>
-          <p className="text-gray-400 text-sm mt-1">Live metrics and administration portal</p>
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 drop-shadow-sm transition-all duration-300">Command Center</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 transition-colors duration-300">Live metrics and administration portal</p>
         </div>
       </div>
 
@@ -109,8 +93,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Primary KPI Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
-        <StatCard icon="👩‍🎓" label="Total Students" value={summary?.total_students ?? 0} sub="Enrolled" color="pink" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard icon="👩‍🏫" label="Active Teachers" value={summary?.active_teachers ?? 0} sub={`${summary?.absent_teachers ?? 0} absent`} color="green" />
         <StatCard icon="📚" label="Lectures" value={summary?.total_lectures ?? 0} sub="Scheduled" color="blue" />
         <StatCard icon="🔄" label="Substitutions" value={summary?.substitutions ?? 0} sub="Auto-assigned" color="amber" />
@@ -182,7 +165,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Attendance Overview (Teachers vs Students) */}
+            {/* Attendance Overview */}
             <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-xl flex flex-col">
               <h3 className="text-base font-bold text-gray-200 mb-6 flex items-center gap-2">
                 <span className="text-blue-400">👥</span> Today's Presence
@@ -207,94 +190,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Students */}
-                <div className="relative">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-400 uppercase tracking-widest font-semibold text-xs">Students</span>
-                    <span className="text-white font-bold">{attendance.student.present} / {attendance.student.present + attendance.student.absent}</span>
-                  </div>
-                  <div className="flex h-6 rounded-lg overflow-hidden border border-gray-800">
-                    <div 
-                      className="bg-gradient-to-r from-emerald-600 to-emerald-400 flex items-center justify-center text-xs font-bold text-white shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)]" 
-                      style={{ width: `${(attendance.student.present / (attendance.student.present + attendance.student.absent || 1)) * 100}%` }}
-                    ></div>
-                    <div 
-                      className="bg-gray-950 flex-1 relative overflow-hidden" 
-                    >
-                      <div className="absolute inset-0 pattern-diagonal-lines opacity-20 text-gray-600"></div>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Right Column: Communications Center */}
-        <div className="space-y-6">
-          <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl flex flex-col h-full">
-            <h3 className="text-base font-bold text-gray-200 mb-6 flex justify-between items-center">
-              <span className="flex items-center gap-2">
-                 <span className="text-purple-400">📢</span> Broadcast Notice
-              </span>
-            </h3>
-            
-            <form onSubmit={handlePostNotice} className="space-y-4 mb-6 pb-6 border-b border-gray-800">
-              <input
-                type="text"
-                required
-                placeholder="Notice Title"
-                className="w-full bg-gray-950/80 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-medium"
-                value={noticeForm.title}
-                onChange={e => setNoticeForm({ ...noticeForm, title: e.target.value })}
-              />
-              <textarea
-                required
-                rows="3"
-                placeholder="Notice details..."
-                className="w-full bg-gray-950/80 border border-gray-800 rounded-lg px-4 py-3 text-sm text-gray-300 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all resize-none"
-                value={noticeForm.content}
-                onChange={e => setNoticeForm({ ...noticeForm, content: e.target.value })}
-              ></textarea>
-              <div className="flex gap-3">
-                <select
-                  className="bg-gray-950/80 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-purple-500/50 flex-1"
-                  value={noticeForm.target_role}
-                  onChange={e => setNoticeForm({ ...noticeForm, target_role: e.target.value })}
-                >
-                  <option value="all">Everyone</option>
-                  <option value="teacher">Teachers Only</option>
-                  <option value="student">Students Only</option>
-                </select>
-                <button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-[0_0_15px_rgba(147,51,234,0.3)] hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]">
-                  Post
-                </button>
-              </div>
-            </form>
-
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Recent Broadcasts</h4>
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-              {notices.length === 0 ? (
-                <div className="text-center py-6 text-sm text-gray-600">No recent notices</div>
-              ) : (
-                notices.slice(0, 5).map(notice => (
-                  <div key={notice.id} className="bg-gray-950/50 p-3.5 rounded-xl border border-gray-800/80 hover:border-purple-500/30 transition-colors">
-                    <div className="flex justify-between items-start mb-1.5">
-                      <h5 className="font-semibold text-gray-200 text-sm">{notice.title}</h5>
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                        notice.target_role === 'all' ? 'bg-blue-500/20 text-blue-400' :
-                        notice.target_role === 'teacher' ? 'bg-amber-500/20 text-amber-400' : 'bg-pink-500/20 text-pink-400'
-                      }`}>
-                        {notice.target_role}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{notice.content}</p>
-                    <div className="mt-2 text-[10px] text-gray-600">{new Date(notice.created_at).toLocaleDateString()}</div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>

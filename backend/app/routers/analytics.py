@@ -52,15 +52,12 @@ def subject_distribution(semester_year: str = "2024-25", db: Session = Depends(g
 
 @router.get("/summary")
 def summary(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
-    from app.models.models import Student
-    
     total_lectures = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.semester_year == semester_year).scalar()
     substitutions = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.is_substituted == True, TimetableEntry.semester_year == semester_year).scalar()
     active_teachers = db.query(func.count(Teacher.id)).filter(Teacher.status == "present").scalar()
     absent_teachers = db.query(func.count(Teacher.id)).filter(Teacher.status == "absent").scalar()
     total_rooms = db.query(func.count(Room.id)).scalar()
     total_classes = db.query(func.count(Class.id)).scalar()
-    total_students = db.query(func.count(Student.id)).scalar()
 
     return {
         "total_lectures": total_lectures,
@@ -69,20 +66,17 @@ def summary(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Dep
         "absent_teachers": absent_teachers,
         "total_rooms": total_rooms,
         "total_classes": total_classes,
-        "total_students": total_students,
+        "total_students": 0,
     }
 
 @router.get("/attendance-trends")
 def attendance_trends(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    from app.models.models import Attendance, StudentAttendance
+    from app.models.models import Attendance
     
     teacher_present = db.query(func.count(Attendance.id)).filter(Attendance.status == "present").scalar()
     teacher_absent = db.query(func.count(Attendance.id)).filter(Attendance.status == "absent").scalar()
     
-    student_present = db.query(func.count(StudentAttendance.id)).filter(StudentAttendance.status == "present").scalar()
-    student_absent = db.query(func.count(StudentAttendance.id)).filter(StudentAttendance.status == "absent").scalar()
-    
     return {
         "teacher": {"present": teacher_present, "absent": teacher_absent},
-        "student": {"present": student_present, "absent": student_absent}
+        "student": {"present": 0, "absent": 0}
     }

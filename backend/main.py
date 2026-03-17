@@ -7,9 +7,7 @@ from app.routers.rooms import router as rooms_router
 from app.routers.timetable import router as timetable_router
 from app.routers.attendance import router as attendance_router
 from app.routers.analytics import router as analytics_router
-from app.routers.students import router as students_router
 from app.routers.leaves import router as leaves_router
-from app.routers.notices import router as notices_router
 from app.routers.uploads import router as uploads_router
 from app.core.database import engine, Base
 import os
@@ -49,9 +47,7 @@ app.include_router(rooms_router,      prefix="/api/rooms",      tags=["Rooms"])
 app.include_router(timetable_router,  prefix="/api/timetable",  tags=["Timetable"])
 app.include_router(attendance_router, prefix="/api/attendance", tags=["Attendance"])
 app.include_router(analytics_router,  prefix="/api/analytics",  tags=["Analytics"])
-app.include_router(students_router,   prefix="/api/students",   tags=["Students"])
 app.include_router(leaves_router,     prefix="/api/leaves",     tags=["Leaves"])
-app.include_router(notices_router,    prefix="/api/notices",    tags=["Notices"])
 app.include_router(uploads_router,    prefix="/api/uploads",    tags=["Uploads"])
 
 @app.get("/")

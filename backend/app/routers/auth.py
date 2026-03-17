@@ -4,7 +4,7 @@ from app.core.database import get_db
 from app.core.security import (
     verify_password, create_access_token, get_current_user
 )
-from app.models.models import User, Teacher, Student, Class, Batch
+from app.models.models import User, Teacher
 from app.schemas.schemas import LoginRequest, TokenResponse
 
 router = APIRouter()
@@ -26,9 +26,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is disabled")
 
-    # 4. Get linked teacher or student
+    # 4. Get linked teacher
     teacher = db.query(Teacher).filter(Teacher.user_id == user.id).first()
-    student = db.query(Student).filter(Student.user_id == user.id).first()
 
     # 5. Create JWT — sub is user id as string (standard practice)
     token = create_access_token({"sub": str(user.id), "role": user.role})
@@ -39,14 +38,13 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         role=user.role,
         user_id=user.id,
         teacher_id=teacher.id if teacher else None,
-        student_id=student.id if student else None,
+        student_id=None,
     )
 
 
 @router.get("/me")
 def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     teacher = db.query(Teacher).filter(Teacher.user_id == current_user.id).first()
-    student = db.query(Student).filter(Student.user_id == current_user.id).first()
     
     data = {
         "id": current_user.id,
@@ -58,17 +56,6 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
         "teacher_avatar": teacher.avatar if teacher else None,
     }
 
-    if student:
-        data.update({
-            "student_id": student.id,
-            "class_id": student.class_id,
-            "batch_id": student.batch_id,
-            "enrollment_number": student.enrollment_number,
-            "name": student.name,
-            "class_name": student.class_.name if student.class_ else None,
-            "batch_name": student.batch.name if student.batch else None,
-        })
-    
     return data
 
 

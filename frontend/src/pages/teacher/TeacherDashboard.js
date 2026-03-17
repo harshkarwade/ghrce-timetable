@@ -57,13 +57,13 @@ export default function TeacherDashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome Card */}
-      <div className="bg-gradient-to-r from-indigo-900/40 to-purple-900/30 border border-indigo-500/20 rounded-2xl p-6">
+      <div className="bg-gradient-to-r from-indigo-50 dark:from-indigo-900/40 to-purple-50 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-500/20 rounded-2xl p-6 transition-all duration-300">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-indigo-700 flex items-center justify-center text-xl font-bold text-white">
             {teacher?.avatar || "?"}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
               Welcome, {teacher?.name || user?.teacher_name || "Teacher"}
             </h2>
             <p className="text-gray-400 text-sm">{teacher?.department?.name || ""}</p>
@@ -87,9 +87,9 @@ export default function TeacherDashboard() {
           { icon: "📅", label: "This Week", value: entries.length, sub: "Total lectures" },
           { icon: "📚", label: "Subjects", value: teacher?.subjects?.length || 0, sub: "Assigned" },
         ].map((s) => (
-          <div key={s.label} className="bg-gray-900/60 border border-gray-700/50 rounded-xl p-4">
+          <div key={s.label} className="bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-4 transition-all duration-300">
             <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold text-white">{s.value}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">{s.value}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
             <div className="text-[10px] text-gray-500">{s.sub}</div>
           </div>
@@ -104,9 +104,9 @@ export default function TeacherDashboard() {
       )}
 
       {/* Today's Schedule */}
-      <div className="bg-gray-900/60 border border-gray-700/50 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700/50 rounded-xl overflow-hidden transition-all duration-300">
         <div className="px-5 py-3 border-b border-gray-700/50">
-          <h3 className="text-sm font-semibold text-gray-300">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300">
             Today's Schedule ({todayName})
           </h3>
         </div>
@@ -124,7 +124,7 @@ export default function TeacherDashboard() {
                     {e.time_slot_label}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-200">{e.subject_name}</div>
+                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 transition-colors duration-300">{e.subject_name}</div>
                     <div className="text-xs text-gray-500">
                       {e.class_name} • {e.room_name}
                     </div>
@@ -140,8 +140,8 @@ export default function TeacherDashboard() {
 
       {/* Subjects assigned */}
       {teacher?.subjects?.length > 0 && (
-        <div className="bg-gray-900/60 border border-gray-700/50 rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">My Subjects</h3>
+        <div className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700/50 rounded-xl p-5 transition-all duration-300">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">My Subjects</h3>
           <div className="flex flex-wrap gap-2">
             {teacher.subjects.map((s) => (
               <span

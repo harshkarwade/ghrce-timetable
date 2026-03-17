@@ -35,11 +35,16 @@ export default function LoginPage() {
 
     setAuth({
       token: data.access_token,
-      role: data.role
+      role: data.role,
+      user_id: data.user_id,
+      teacher_id: data.teacher_id,
+      student_id: data.student_id
     });
 
     toast.success(`Welcome! Logged in as ${data.role}`);
-    navigate(data.role === "admin" ? "/admin" : "/teacher");
+    
+    if (data.role === "admin") navigate("/admin");
+    else navigate("/teacher");
 
   } catch (err) {
     toast.error(err.response?.data?.detail || "Login failed");
@@ -87,8 +92,16 @@ export default function LoginPage() {
 
         <div className="mt-4 bg-gray-900/40 border border-gray-700/30 rounded-xl p-4 text-xs text-gray-400 space-y-1">
           <p className="font-semibold text-gray-300 mb-2">Demo Credentials</p>
-          <p>Admin: admin@ghrce.edu / admin123</p>
-          <p>Teacher: priya@ghrce.edu / teacher123</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-gray-500 uppercase font-bold text-[9px]">Admin</p>
+              <p>admin@ghrce.edu / admin123</p>
+            </div>
+            <div>
+              <p className="text-gray-500 uppercase font-bold text-[9px]">Teacher</p>
+              <p>priya@ghrce.edu / teacher123</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

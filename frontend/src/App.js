@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import useAuthStore from "./store/authStore";
+import useThemeStore from "./store/themeStore";
 import { getMe } from "./services/api";
 
 // Pages
@@ -19,7 +20,6 @@ import ManageTeachers from "./pages/admin/ManageTeachers";
 import AttendanceReschedule from "./pages/admin/AttendanceReschedule";
 import Analytics from "./pages/admin/Analytics";
 import AdminLeaveRequests from "./pages/admin/AdminLeaveRequests";
-import AdminStudents from "./pages/admin/AdminStudents";
 
 // Teacher Pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
@@ -28,13 +28,6 @@ import MyAttendance from "./pages/teacher/MyAttendance";
 import LeaveApplication from "./pages/teacher/LeaveApplication";
 import MyWorkload from "./pages/teacher/MyWorkload";
 
-// Student Pages
-import StudentLayout from "./pages/student/StudentLayout";
-import StudentDashboard from "./pages/student/StudentDashboard";
-import StudentTimetable from "./pages/student/StudentTimetable";
-import StudentAttendance from "./pages/student/StudentAttendance";
-import StudentNoticeboard from "./pages/student/StudentNoticeboard";
-
 function ProtectedRoute({ children, requiredRole }) {
   const { token, role } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
@@ -42,13 +35,19 @@ function ProtectedRoute({ children, requiredRole }) {
   // Admin can access everything; others go to their portal
   if (requiredRole === "admin" && role !== "admin") return <Navigate to={`/${role}`} replace />;
   if (requiredRole === "teacher" && role !== "teacher" && role !== "admin") return <Navigate to="/login" replace />;
-  if (requiredRole === "student" && role !== "student" && role !== "admin") return <Navigate to="/login" replace />;
   
   return children;
 }
 
 export default function App() {
   const { token, setUser, logout } = useAuthStore();
+  const theme = useThemeStore((s) => s.theme);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (token) {
@@ -85,7 +84,6 @@ export default function App() {
           <Route path="attendance" element={<AttendanceReschedule />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="leaves" element={<AdminLeaveRequests />} />
-          <Route path="students" element={<AdminStudents />} />
         </Route>
 
         {/* Teacher Routes */}
@@ -95,14 +93,6 @@ export default function App() {
           <Route path="attendance" element={<MyAttendance />} />
           <Route path="leave" element={<LeaveApplication />} />
           <Route path="workload" element={<MyWorkload />} />
-        </Route>
-
-        {/* Student Routes */}
-        <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentLayout /></ProtectedRoute>}>
-          <Route index element={<StudentDashboard />} />
-          <Route path="timetable" element={<StudentTimetable />} />
-          <Route path="attendance" element={<StudentAttendance />} />
-          <Route path="noticeboard" element={<StudentNoticeboard />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

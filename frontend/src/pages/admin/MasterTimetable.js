@@ -9,6 +9,7 @@ const SLOTS = [
 ];
 
 export default function MasterTimetable() {
+  const [semester, setSemester] = useState("2024-25");
   const [classes, setClasses]   = useState([]);
   const [selected, setSelected] = useState(null);
   const [entries, setEntries]   = useState([]);
@@ -26,15 +27,15 @@ export default function MasterTimetable() {
       .finally(() => setClassesLoading(false));
   }, []);
 
-  // Load entries when selected class changes
+  // Load entries when selected class or semester changes
   useEffect(() => {
     if (!selected) return;
     setLoading(true);
-    getTimetable({ class_id: selected.id })
+    getTimetable({ class_id: selected.id, semester_year: semester })
       .then((r) => setEntries(r.data || []))
       .catch(() => toast.error("Could not load timetable"))
       .finally(() => setLoading(false));
-  }, [selected]);
+  }, [selected, semester]);
 
   // Build grid (Array to support multiple batches concurrent)
   const grid = {};
@@ -47,33 +48,53 @@ export default function MasterTimetable() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-900/40 p-5 rounded-2xl border border-gray-800">
-        <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2"><span>📅</span> Master Timetable</h2>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-900/40 p-5 rounded-2xl border border-gray-800 shadow-lg backdrop-blur-sm">
+        <div className="flex-shrink-0">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <span className="bg-indigo-500/20 p-2 rounded-lg text-indigo-400">📅</span> 
+            Master Timetable
+          </h2>
           <p className="text-gray-400 text-sm mt-1">Class & Batch-wise weekly schedule view</p>
         </div>
-        {/* Class selector */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider hidden md:block">Select Class:</span>
-          {classesLoading ? (
-            <div className="text-sm bg-gray-800 text-gray-400 px-4 py-2 rounded-lg py-2 animate-pulse w-48 text-center">Loading classes...</div>
-          ) : classes.length === 0 ? (
-            <div className="text-sm bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg">No classes found</div>
-          ) : (
-            <select
-              title="Select Class"
-              className="bg-gray-950 border border-indigo-500/30 text-white text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block w-full md:w-auto p-2.5 shadow-sm min-w-[200px]"
-              value={selected?.id || ""}
-              onChange={(e) => {
-                const c = classes.find(c => c.id === parseInt(e.target.value));
-                if (c) setSelected(c);
-              }}
-            >
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          )}
+
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Semester Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Semester:</span>
+            <input 
+              type="text"
+              className="bg-gray-950 border border-gray-700 text-white text-xs rounded-lg p-2 w-24 focus:ring-1 focus:ring-indigo-500 outline-none transition-all focus:border-indigo-500"
+              placeholder="2024-25"
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+            />
+          </div>
+
+          <div className="h-8 w-[1px] bg-gray-800 hidden md:block"></div>
+
+          {/* Class selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Class:</span>
+            {classesLoading ? (
+              <div className="text-sm bg-gray-800/50 text-gray-400 px-4 py-2 rounded-lg animate-pulse w-48 text-center border border-gray-700/30">Loading classes...</div>
+            ) : classes.length === 0 ? (
+              <div className="text-sm bg-red-500/10 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg">No classes found</div>
+            ) : (
+              <select
+                title="Select Class"
+                className="bg-gray-950 border border-gray-700 text-white text-xs rounded-lg focus:ring-1 focus:ring-indigo-500 block p-2 shadow-sm min-w-[180px] outline-none transition-all focus:border-indigo-500"
+                value={selected?.id || ""}
+                onChange={(e) => {
+                  const c = classes.find(c => c.id === parseInt(e.target.value));
+                  if (c) setSelected(c);
+                }}
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
       </div>
 
@@ -123,33 +144,33 @@ export default function MasterTimetable() {
                   {DAYS.map((day) => {
                     const slotEntries = grid[day][slot];
                     return (
-                      <td key={day} className="p-2 border-b border-gray-800 align-top">
+                      <td key={day} className="p-2 border-b border-gray-800 align-top h-full min-w-[180px]">
                         {slotEntries.length > 0 ? (
-                          <div className={`grid gap-2 ${slotEntries.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} h-full`}>
+                          <div className="flex flex-col gap-2 h-full">
                             {slotEntries.map((e, idx) => (
-                              <div key={idx} className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between h-full transition-all duration-300 hover:scale-[1.02] hover:shadow-lg ${
+                              <div key={idx} className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:shadow-lg flex-1 ${
                                 e.subject_type === 'lab' 
-                                  ? 'bg-gradient-to-br from-amber-900/30 to-orange-900/10 border-amber-500/30 hover:border-amber-400/60' 
-                                  : 'bg-gradient-to-br from-emerald-900/30 to-teal-900/10 border-emerald-500/30 hover:border-emerald-400/60'
+                                  ? 'bg-gradient-to-br from-amber-900/40 to-orange-950/20 border-amber-500/30 hover:border-amber-400/60' 
+                                  : 'bg-gradient-to-br from-indigo-900/40 to-blue-950/20 border-indigo-500/30 hover:border-indigo-400/60'
                               }`}>
                                 {/* Batch Badge */}
                                 {e.batch_name && (
-                                  <div className="absolute -top-2 -right-2 bg-gray-900 text-amber-400 border border-amber-500/50 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md z-10">
-                                    {e.batch_name}
+                                  <div className="absolute -top-2 -right-1 bg-gray-900 text-amber-400 border border-amber-500/50 text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-lg z-10 uppercase tracking-tighter">
+                                    {e.batch_name.split(' - ').pop()}
                                   </div>
                                 )}
                                 
                                 <div className="mb-2">
-                                  <div className={`font-bold text-[13px] leading-tight mb-0.5 ${e.subject_type === 'lab' ? 'text-amber-300' : 'text-emerald-300'}`}>
+                                  <div className={`font-black text-[12px] leading-tight mb-1 tracking-tight ${e.subject_type === 'lab' ? 'text-amber-200' : 'text-indigo-200'}`}>
                                     {e.subject_name}
                                   </div>
-                                  <div className="text-[10px] text-gray-300 font-medium opacity-90 truncate max-w-full">
-                                    {e.teacher_name}
+                                  <div className="text-[10px] text-gray-400 font-bold opacity-90 truncate flex items-center gap-1">
+                                    <span className="opacity-50 text-[8px]">👤</span> {e.teacher_name}
                                   </div>
                                 </div>
                                 
-                                <div className="flex justify-between items-end mt-1 pt-2 border-t border-white/5">
-                                  <div className="text-[10px] font-mono text-gray-400 bg-black/20 px-1.5 py-0.5 rounded">
+                                <div className="flex justify-between items-end mt-auto pt-2 border-t border-white/5">
+                                  <div className="text-[9px] font-black font-mono text-gray-500 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
                                     {e.room_name}
                                   </div>
                                   {e.is_substituted && (

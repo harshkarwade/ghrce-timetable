@@ -188,7 +188,12 @@ def get_timetable(
 ):
     query = _load_entries(db)
 
-    # Only filter by semester_year if explicitly provided
+    # If no semester_year is provided, try to find the most recent one
+    if not semester_year:
+        latest = db.query(TimetableEntry.semester_year).order_by(TimetableEntry.id.desc()).first()
+        if latest:
+            semester_year = latest[0]
+
     if semester_year:
         query = query.filter(TimetableEntry.semester_year == semester_year)
 

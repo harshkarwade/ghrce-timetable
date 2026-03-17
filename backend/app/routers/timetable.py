@@ -15,6 +15,7 @@ from app.models.models import (
     Department,
     SubstituteAssignment,
     Attendance,
+    StudentAttendance,
 )
 from app.schemas.schemas import GenerateRequest, RescheduleRequest
 from app.services.ai_engine import TimetableEngine, ReschedulingEngine

@@ -1,0 +1,7 @@
+{
+  "semester_year": "2024-25",
+  "avoid_consecutive": true,
+  "balance_load": true,
+  "labs_afternoon": false,
+  "max_per_day": 5
+}

@@ -337,15 +337,19 @@ export default function MasterTimetable() {
                                           <div className="entry-room text-[9px] font-black text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-md">
                                             {e.room_name}
                                           </div>
-                                          <span className="opacity-0 group-hover/entry:opacity-100 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-tighter transition-opacity">Edit</span>
+                                          {role === "admin" && (
+                                              <span className="opacity-0 group-hover/entry:opacity-100 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-tighter transition-opacity">Edit</span>
+                                            )}
                                         </div>
                                       </div>
                                     );
                                   })
                                 ) : (
-                                  <div className="h-full min-h-[80px] w-full rounded-2xl border-2 border-dashed border-[var(--border-subtle)] flex items-center justify-center text-[var(--border-subtle)] hover:text-indigo-500/50 hover:bg-indigo-500/5 transition-all text-2xl font-light no-print">
-                                    +
-                                  </div>
+                                  role === "admin" && (
+                                      <div className="h-full min-h-[80px] w-full rounded-2xl border-2 border-dashed border-[var(--border-subtle)] flex items-center justify-center text-[var(--border-subtle)] hover:text-indigo-500/50 hover:bg-indigo-500/5 transition-all text-2xl font-light no-print">
+                                        +
+                                      </div>
+                                    )
                                 )}
                               </div>
                             </td>

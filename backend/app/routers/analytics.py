@@ -80,3 +80,30 @@ def attendance_trends(db: Session = Depends(get_db), _=Depends(get_current_user)
         "teacher": {"present": teacher_present, "absent": teacher_absent},
         "student": {"present": 0, "absent": 0}
     }
+
+@router.get("/day-load")
+def day_load(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Returns total lecture count per weekday to visualise schedule density."""
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    result = []
+    for day in days:
+        count = db.query(func.count(TimetableEntry.id)).filter(
+            TimetableEntry.day == day,
+            TimetableEntry.semester_year == semester_year
+        ).scalar()
+        result.append({"day": day[:3], "lectures": count})
+    return result
+
+@router.get("/department-load")
+def department_load(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Returns lecture count grouped by department name."""
+    from app.models.models import Department
+    results = (
+        db.query(Department.name, func.count(TimetableEntry.id).label("count"))
+        .join(Subject, Subject.dept_id == Department.id)
+        .join(TimetableEntry, TimetableEntry.subject_id == Subject.id)
+        .filter(TimetableEntry.semester_year == semester_year)
+        .group_by(Department.name)
+        .all()
+    )
+    return [{"dept": r.name, "count": r.count} for r in results]

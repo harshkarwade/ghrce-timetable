@@ -88,6 +88,8 @@ export const getSubjectDistribution = () =>
   API.get("/analytics/subject-distribution");
 export const getSummary = () => API.get("/analytics/summary");
 export const getAttendanceTrends = () => API.get("/analytics/attendance-trends");
+export const getDayLoad = () => API.get("/analytics/day-load");
+export const getDepartmentLoad = () => API.get("/analytics/department-load");
 
 // ── Leaves (admin) ────────────────────────────────────────────────────────────
 export const getLeaveRequests = (params = {}) => API.get("/leaves/", { params });

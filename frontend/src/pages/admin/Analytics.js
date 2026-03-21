@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { getWorkload, getRoomUtilization, getSubjectDistribution, getSummary, getAttendanceTrends } from "../../services/api";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis } from "recharts";
+import { getWorkload, getRoomUtilization, getSubjectDistribution, getSummary, getAttendanceTrends, getDayLoad, getDepartmentLoad } from "../../services/api";
 
 const COLORS_PIE = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f59e0b", "#10b981", "#0ea5e9", "#14b8a6"];
 
@@ -26,6 +26,8 @@ export default function Analytics() {
   const [subjects, setSubjects] = useState([]);
   const [summary, setSummary] = useState(null);
   const [attendance, setAttendance] = useState(null);
+  const [dayLoad, setDayLoad] = useState([]);
+  const [deptLoad, setDeptLoad] = useState([]);
 
   useEffect(() => {
     getWorkload().then(r => setWorkload(r.data)).catch(() => {});
@@ -33,6 +35,8 @@ export default function Analytics() {
     getSubjectDistribution().then(r => setSubjects(r.data)).catch(() => {});
     getSummary().then(r => setSummary(r.data)).catch(() => {});
     getAttendanceTrends().then(r => setAttendance(r.data)).catch(() => {});
+    getDayLoad().then(r => setDayLoad(r.data)).catch(() => {});
+    getDepartmentLoad().then(r => setDeptLoad(r.data)).catch(() => {});
   }, []);
 
   const workloadChart = workload.map(w => ({ name: w.teacher_name.split(" ").slice(-1)[0], lectures: w.lecture_count }));
@@ -200,6 +204,44 @@ export default function Analytics() {
               );
             })}
           </div>
+        </div>
+
+        {/* Day Load Radar */}
+        <div className="bg-gray-900/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl relative">
+          <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white pointer-events-none">05</div>
+          <h3 className="text-base font-bold text-gray-200 mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-cyan-500 rounded-full inline-block" /> Daily Schedule Density
+          </h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <RadarChart data={dayLoad} cx="50%" cy="50%" outerRadius="70%">
+              <PolarGrid stroke="#374151" />
+              <PolarAngleAxis dataKey="day" tick={{ fill: "#9ca3af", fontSize: 12, fontWeight: 700 }} />
+              <Radar name="Lectures" dataKey="lectures" stroke="#06b6d4" fill="#06b6d4" fillOpacity={0.3} strokeWidth={2} dot={{ fill:"#06b6d4", r: 4 }} />
+              <Tooltip contentStyle={{ background: "rgba(17, 24, 39, 0.9)", border: "1px solid #374151", borderRadius: 12, color: "#f9fafb" }} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Department Load Horizontal Bar */}
+        <div className="lg:col-span-2 bg-gray-900/60 border border-gray-700/50 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-white pointer-events-none">06</div>
+          <h3 className="text-base font-bold text-gray-200 mb-6 flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-violet-500 rounded-full inline-block" /> Department-wise Lecture Load
+          </h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={deptLoad} layout="vertical" margin={{ left: 10, right: 20, top: 5 }}>
+              <defs>
+                <linearGradient id="colorDept" x1="1" y1="0" x2="0" y2="0">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#6d28d9" stopOpacity={0.3}/>
+                </linearGradient>
+              </defs>
+              <XAxis type="number" tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="dept" width={110} tick={{ fill: "#d1d5db", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+              <Tooltip cursor={{ fill: '#374151', opacity: 0.15 }} contentStyle={{ background: "rgba(17,24,39,0.9)", border: "1px solid #374151", borderRadius: 12, color: "#f9fafb" }} />
+              <Bar dataKey="count" fill="url(#colorDept)" radius={[0, 6, 6, 0]} barSize={22} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
       </div>

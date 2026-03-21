@@ -176,12 +176,23 @@ export default function MasterTimetable() {
                       >
                         <div className="flex flex-col gap-2 h-full min-h-[60px]">
                           {slotEntries.length > 0 ? (
-                            slotEntries.map((e, idx) => (
+                            slotEntries.map((e, idx) => {
+                              const sIdx = timeSlots.findIndex(s => s.label === slot.label);
+                              const nextSlot = timeSlots[sIdx + 1];
+                              const prevSlot = timeSlots[sIdx - 1];
+                              const isPart1 = e.subject_type === 'lab' && nextSlot && grid[day][nextSlot.label] && grid[day][nextSlot.label].find(n => n.subject_id === e.subject_id && n.batch_id === e.batch_id);
+                              const isPart2 = e.subject_type === 'lab' && prevSlot && grid[day][prevSlot.label] && grid[day][prevSlot.label].find(n => n.subject_id === e.subject_id && n.batch_id === e.batch_id);
+                              
+                              let connectClass = "";
+                              if (isPart1) connectClass = "rounded-b-none border-b-amber-500/10 !pb-1 mb-[-8px] z-10";
+                              if (isPart2) connectClass = "rounded-t-none border-t-amber-500/10 !pt-1 mt-[-8px] z-0";
+
+                              return (
                               <div key={idx} 
                                 onClick={(ev) => handleEntryEdit(ev, e)}
                                 className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.03] hover:shadow-xl flex-1 group/entry ${
                                 e.subject_type === 'lab' 
-                                  ? 'bg-gradient-to-br from-amber-900/40 to-orange-950/20 border-amber-500/30 hover:border-amber-400/60' 
+                                  ? 'bg-gradient-to-br from-amber-900/40 to-orange-950/20 border-amber-500/30 hover:border-amber-400/60 ' + connectClass
                                   : 'bg-gradient-to-br from-indigo-900/40 to-blue-950/20 border-indigo-500/30 hover:border-indigo-400/60'
                               }`}>
                                 {e.batch_name && (
@@ -204,7 +215,7 @@ export default function MasterTimetable() {
                                   <div className="opacity-0 group-hover/entry:opacity-100 transition-opacity text-[8px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-1.5 py-0.5 rounded">Edit</div>
                                 </div>
                               </div>
-                            ))
+                            )})
                           ) : (
                             <div className="h-full min-h-[60px] w-full rounded-xl border border-dashed border-gray-800/20 flex items-center justify-center text-gray-800 group-hover:text-indigo-500/50 transition-all font-light text-2xl">
                               +

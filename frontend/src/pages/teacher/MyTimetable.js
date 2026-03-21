@@ -87,10 +87,21 @@ export default function MyTimetable() {
                       <td key={day} className="p-2 border-b border-gray-800 align-top">
                         {slotEntries.length > 0 ? (
                           <div className={`grid gap-2 ${slotEntries.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} h-full`}>
-                            {slotEntries.map((e, idx) => (
+                            {slotEntries.map((e, idx) => {
+                              const sIdx = SLOTS.findIndex(s => s === slot);
+                              const nextSlot = SLOTS[sIdx + 1];
+                              const prevSlot = SLOTS[sIdx - 1];
+                              const isPart1 = e.subject_type === 'lab' && nextSlot && grid[day][nextSlot] && grid[day][nextSlot].find(n => n.subject_id === e.subject_id && n.batch_id === e.batch_id);
+                              const isPart2 = e.subject_type === 'lab' && prevSlot && grid[day][prevSlot] && grid[day][prevSlot].find(n => n.subject_id === e.subject_id && n.batch_id === e.batch_id);
+                              
+                              let connectClass = "";
+                              if (isPart1) connectClass = "rounded-b-none border-b-amber-500/10 !pb-1 mb-[-8px] z-10";
+                              if (isPart2) connectClass = "rounded-t-none border-t-amber-500/10 !pt-1 mt-[-8px] z-0";
+
+                              return (
                               <div key={idx} className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[90px] ${
                                 e.subject_type === 'lab' 
-                                  ? 'bg-gradient-to-br from-amber-900/30 to-orange-900/10 border-amber-500/30 hover:border-amber-400/60' 
+                                  ? 'bg-gradient-to-br from-amber-900/30 to-orange-900/10 border-amber-500/30 hover:border-amber-400/60 ' + connectClass 
                                   : 'bg-gradient-to-br from-indigo-900/30 to-purple-900/10 border-indigo-500/30 hover:border-indigo-400/60'
                               }`}>
                                 {/* Batch Badge */}
@@ -121,7 +132,7 @@ export default function MyTimetable() {
                                   )}
                                 </div>
                               </div>
-                            ))}
+                            )})}
                           </div>
                         ) : (
                           <div className="h-full min-h-[90px] w-full rounded-xl border border-dashed border-gray-800/40 bg-gray-900/10 flex items-center justify-center text-gray-700 text-xs">

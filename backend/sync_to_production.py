@@ -143,8 +143,17 @@ def run():
         n = upsert(pg, "classes", rows, pk="id")
         print(f"  {n} rows synced.")
 
-        # 8. TEACHER_SUBJECTS
-        print("[8/8] Syncing Teacher-Subject Assignments...")
+        # 8. BATCHES
+        print("[8/9] Syncing Batches...")
+        cols = get_cols(sqlite_conn, "batches")
+        keep_candidates = ["id", "name", "class_id"]
+        keep = [c for c in keep_candidates if c in cols]
+        rows = get_local_rows(sqlite_conn, "batches", keep)
+        n = upsert(pg, "batches", rows, pk="id")
+        print(f"  {n} rows synced.")
+
+        # 9. TEACHER_SUBJECTS
+        print("[9/9] Syncing Teacher-Subject Assignments...")
         rows = get_local_rows(sqlite_conn, "teacher_subjects", ["teacher_id", "subject_id"])
         count = 0
         for r in rows:
@@ -162,7 +171,7 @@ def run():
         # Reset sequences so new inserts don't conflict
         print("\nResetting PostgreSQL sequences...")
         for table, col in [("departments","id"), ("rooms","id"), ("time_slots","id"),
-                            ("users","id"), ("teachers","id"), ("subjects","id"), ("classes","id")]:
+                            ("users","id"), ("teachers","id"), ("subjects","id"), ("classes","id"), ("batches","id")]:
             try:
                 pg.execute(text(f"SELECT setval(pg_get_serial_sequence('{table}', '{col}'), COALESCE(MAX({col}), 1)) FROM {table}"))
             except Exception as e:

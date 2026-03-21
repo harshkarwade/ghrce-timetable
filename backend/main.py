@@ -10,6 +10,7 @@ from app.routers.analytics import router as analytics_router
 from app.routers.leaves import router as leaves_router
 from app.routers.uploads import router as uploads_router
 from app.routers.classes import router as classes_router
+from app.routers.batches import router as batches_router
 from app.core.database import engine, Base
 import os
 import traceback
@@ -51,6 +52,7 @@ app.include_router(analytics_router,  prefix="/api/analytics",  tags=["Analytics
 app.include_router(leaves_router,     prefix="/api/leaves",     tags=["Leaves"])
 app.include_router(uploads_router,    prefix="/api/uploads",    tags=["Uploads"])
 app.include_router(classes_router,    prefix="/api/classes",    tags=["Classes"])
+app.include_router(batches_router,    prefix="/api/batches",    tags=["Batches"])
 
 @app.get("/")
 def root():

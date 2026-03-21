@@ -26,7 +26,11 @@ class DepartmentOut(BaseModel):
 class TeacherCreate(BaseModel):
     name: str
     dept_id: int
-    max_load: int = 5
+    max_load: int = 18
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    responsibilities: Optional[str] = None
+    admin_load: int = 0
     avatar: Optional[str] = None
     phone: Optional[str] = None
     subject_ids: List[int] = []
@@ -39,6 +43,10 @@ class TeacherUpdate(BaseModel):
     max_load: Optional[int] = None
     status: Optional[str] = None
     phone: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    responsibilities: Optional[str] = None
+    admin_load: Optional[int] = None
 
 class SubjectMini(BaseModel):
     id: int
@@ -51,6 +59,10 @@ class TeacherOut(BaseModel):
     name: str
     dept_id: Optional[int]
     max_load: int
+    designation: Optional[str]
+    specialization: Optional[str]
+    responsibilities: Optional[str]
+    admin_load: int
     avatar: Optional[str]
     status: str
     phone: Optional[str]
@@ -65,6 +77,7 @@ class SubjectCreate(BaseModel):
     credits: int = 3
     type: str = "theory"
     code: Optional[str] = None
+    weekly_load: int = 3
 
 class SubjectOut(BaseModel):
     id: int
@@ -73,6 +86,7 @@ class SubjectOut(BaseModel):
     credits: int
     type: str
     code: Optional[str]
+    weekly_load: int
     department: Optional[DepartmentOut] = None
     class Config: from_attributes = True
 
@@ -105,7 +119,23 @@ class TimetableEntryOut(BaseModel):
     original_teacher: Optional[dict] = None
     room: Optional[RoomOut] = None
     time_slot: Optional[dict] = None
+    semester_year: str
     class Config: from_attributes = True
+
+class TimetableEntryCreate(BaseModel):
+    class_id: int
+    batch_id: Optional[int] = None
+    subject_id: int
+    teacher_id: int
+    room_id: int
+    day: str
+    time_slot_id: int
+    semester_year: str = "2024-25"
+
+class TimetableEntryUpdate(BaseModel):
+    subject_id: Optional[int] = None
+    teacher_id: Optional[int] = None
+    room_id: Optional[int] = None
 
 class GenerateRequest(BaseModel):
     semester_year: str = "2024-25"

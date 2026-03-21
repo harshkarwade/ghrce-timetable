@@ -38,6 +38,10 @@ def create_teacher(data: TeacherCreate, db: Session = Depends(get_db), _=Depends
         name=data.name,
         dept_id=data.dept_id,
         max_load=data.max_load,
+        designation=data.designation,
+        specialization=data.specialization,
+        responsibilities=data.responsibilities,
+        admin_load=data.admin_load,
         avatar=avatar,
         phone=data.phone,
         status="present"

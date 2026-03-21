@@ -17,6 +17,7 @@ import MasterTimetable from "./pages/admin/MasterTimetable";
 import TeacherTimetables from "./pages/admin/TeacherTimetables";
 import RoomTimetables from "./pages/admin/RoomTimetables";
 import ManageTeachers from "./pages/admin/ManageTeachers";
+import ManageClasses from "./pages/admin/ManageClasses";
 import AttendanceReschedule from "./pages/admin/AttendanceReschedule";
 import Analytics from "./pages/admin/Analytics";
 import AdminLeaveRequests from "./pages/admin/AdminLeaveRequests";
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="teacher-timetables" element={<TeacherTimetables />} />
           <Route path="room-timetables" element={<RoomTimetables />} />
           <Route path="teachers" element={<ManageTeachers />} />
+          <Route path="classes" element={<ManageClasses />} />
           <Route path="attendance" element={<AttendanceReschedule />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="leaves" element={<AdminLeaveRequests />} />
@@ -90,6 +92,7 @@ export default function App() {
         <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherLayout /></ProtectedRoute>}>
           <Route index element={<TeacherDashboard />} />
           <Route path="timetable" element={<MyTimetable />} />
+          <Route path="master-timetable" element={<MasterTimetable />} />
           <Route path="attendance" element={<MyAttendance />} />
           <Route path="leave" element={<LeaveApplication />} />
           <Route path="workload" element={<MyWorkload />} />

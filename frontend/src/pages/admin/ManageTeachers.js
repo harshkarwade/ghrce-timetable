@@ -7,7 +7,11 @@ export default function ManageTeachers() {
   const [depts, setDepts] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", dept_id: "", max_load: 5, email: "", password: "teacher123", subject_ids: [] });
+  const [form, setForm] = useState({ 
+    name: "", dept_id: "", max_load: 18, admin_load: 0, 
+    designation: "", specialization: "", responsibilities: "",
+    email: "", password: "teacher123", subject_ids: [] 
+  });
 
   const load = () => getTeachers().then(r => setTeachers(r.data)).catch(() => {});
 
@@ -23,7 +27,11 @@ export default function ManageTeachers() {
       await createTeacher({ ...form, dept_id: +form.dept_id });
       toast.success("Teacher created");
       setShowForm(false);
-      setForm({ name: "", dept_id: "", max_load: 5, email: "", password: "teacher123", subject_ids: [] });
+      setForm({ 
+        name: "", dept_id: "", max_load: 18, admin_load: 0, 
+        designation: "", specialization: "", responsibilities: "",
+        email: "", password: "teacher123", subject_ids: [] 
+      });
       load();
     } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
   };
@@ -80,6 +88,18 @@ export default function ManageTeachers() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
               </div>
             ))}
+            {[
+              { key: "designation", label: "Designation", placeholder: "e.g. Assoc. Professor" },
+              { key: "specialization", label: "Specialization", placeholder: "e.g. Machine Learning" },
+              { key: "responsibilities", label: "Responsibilities", placeholder: "e.g. Exam Cell, IEEE" },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
+                <input value={form[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+              </div>
+            ))}
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Department</label>
               <select value={form.dept_id} onChange={e => setForm(p => ({ ...p, dept_id: e.target.value }))}
@@ -89,8 +109,13 @@ export default function ManageTeachers() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-400 mb-1 block">Max Load/Day</label>
-              <input type="number" min={1} max={8} value={form.max_load} onChange={e => setForm(p => ({ ...p, max_load: +e.target.value }))}
+              <label className="text-xs text-gray-400 mb-1 block">Max Weekly Load</label>
+              <input type="number" min={1} max={40} value={form.max_load} onChange={e => setForm(p => ({ ...p, max_load: +e.target.value }))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Admin Load (hrs/wk)</label>
+              <input type="number" min={0} max={20} value={form.admin_load} onChange={e => setForm(p => ({ ...p, admin_load: +e.target.value }))}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
             </div>
             <div className="col-span-2">
@@ -117,8 +142,15 @@ export default function ManageTeachers() {
           <div key={t.id} className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center font-bold flex-shrink-0">{t.avatar || "?"}</div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-200">{t.name}</div>
-              <div className="text-xs text-gray-400">{t.department?.name}</div>
+              <div className="font-medium text-gray-200 flex items-center gap-2">
+                {t.name}
+                {t.designation && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-normal">{t.designation}</span>}
+              </div>
+              <div className="text-xs text-gray-400 flex items-center gap-2">
+                {t.department?.name} 
+                {t.specialization && <span className="text-gray-500">• {t.specialization}</span>}
+              </div>
+              {t.responsibilities && <div className="text-[10px] text-amber-400/80 mt-1 italic">Responsibility: {t.responsibilities} (Admin Load: {t.admin_load}h)</div>}
               <div className="flex flex-wrap gap-1 mt-1">
                 {t.subjects?.map(s => (
                   <span key={s.id} className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">{s.name}</span>

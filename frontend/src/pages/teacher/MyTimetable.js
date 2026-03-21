@@ -5,8 +5,8 @@ import toast from "react-hot-toast";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SLOTS = [
-  "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
-  "12:00 - 01:00", "01:00 - 02:00", "02:00 - 03:00", "03:00 - 04:00",
+  "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30", "12:30 - 01:30",
+  "01:30 - 02:30", "02:30 - 03:30", "03:30 - 04:30", "04:30 - 05:30"
 ];
 
 export default function MyTimetable() {

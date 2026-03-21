@@ -17,7 +17,7 @@ from app.models.models import (
     Attendance,
     StudentAttendance,
 )
-from app.schemas.schemas import GenerateRequest, RescheduleRequest
+from app.schemas.schemas import GenerateRequest, RescheduleRequest, TimetableEntryCreate, TimetableEntryUpdate
 from app.services.ai_engine import TimetableEngine, ReschedulingEngine
 
 router = APIRouter()
@@ -123,12 +123,14 @@ def generate_timetable(
             "name": t.name,
             "dept_id": t.dept_id,
             "status": t.status,
+            "max_load": t.max_load,
+            "admin_load": t.admin_load,
             "subject_ids": [s.id for s in t.subjects],
         }
         for t in teachers
     ]
     subjects_data = [
-        {"id": s.id, "name": s.name, "dept_id": s.dept_id, "type": s.type}
+        {"id": s.id, "name": s.name, "dept_id": s.dept_id, "type": s.type, "weekly_load": s.weekly_load}
         for s in subjects
     ]
     rooms_data = [{"id": r.id, "name": r.name, "type": r.type} for r in rooms]
@@ -217,51 +219,101 @@ def get_timetable(
 
 
 # ── Manual Timetable Editor ───────────────────────────────────────────────────
+def check_timetable_conflict(db: Session, day: str, time_slot_id: int, semester_year: str, 
+                             teacher_id: Optional[int] = None, room_id: Optional[int] = None, 
+                             exclude_id: Optional[int] = None):
+    if teacher_id:
+        conflict = db.query(TimetableEntry).filter(
+            TimetableEntry.day == day,
+            TimetableEntry.time_slot_id == time_slot_id,
+            TimetableEntry.semester_year == semester_year,
+            TimetableEntry.teacher_id == teacher_id
+        )
+        if exclude_id:
+            conflict = conflict.filter(TimetableEntry.id != exclude_id)
+        
+        conflict = conflict.first()
+        if conflict:
+            return f"Teacher is already booked for this time slot in class {conflict.class_.name}."
+            
+    if room_id:
+        conflict = db.query(TimetableEntry).filter(
+            TimetableEntry.day == day,
+            TimetableEntry.time_slot_id == time_slot_id,
+            TimetableEntry.semester_year == semester_year,
+            TimetableEntry.room_id == room_id
+        )
+        if exclude_id:
+            conflict = conflict.filter(TimetableEntry.id != exclude_id)
+            
+        conflict = conflict.first()
+        if conflict:
+            return f"Room is already occupied by class {conflict.class_.name}."
+    return None
+
+@router.post("/")
+def create_manual_entry(
+    req: TimetableEntryCreate,
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    """Manually create a timetable entry."""
+    # 1. Check for conflicts
+    error = check_timetable_conflict(
+        db, req.day, req.time_slot_id, req.semester_year,
+        teacher_id=req.teacher_id, room_id=req.room_id
+    )
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+
+    # 2. Check if this exact slot (Class + Day + Slot) is already taken
+    existing = db.query(TimetableEntry).filter(
+        TimetableEntry.class_id == req.class_id,
+        TimetableEntry.batch_id == req.batch_id,
+        TimetableEntry.day == req.day,
+        TimetableEntry.time_slot_id == req.time_slot_id,
+        TimetableEntry.semester_year == req.semester_year
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="This class/batch already has a session in this slot.")
+
+    # 3. Create
+    entry = TimetableEntry(**req.dict())
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    
+    return entry_to_dict(_load_entries(db).filter(TimetableEntry.id == entry.id).first())
+
 @router.put("/{entry_id}")
 def edit_timetable_entry(
     entry_id: int,
-    req: dict,
+    req: TimetableEntryUpdate,
     db: Session = Depends(get_db),
     _=Depends(require_admin),
 ):
     """Manually edit a specific exact timetable slot, ensuring no conflicts."""
-    teacher_id = req.get("teacher_id")
-    subject_id = req.get("subject_id")
-    room_id = req.get("room_id")
-
     entry = db.query(TimetableEntry).filter(TimetableEntry.id == entry_id).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Timetable entry not found")
 
-    # High-Accuracy Conflict Validation
-    if teacher_id and teacher_id != entry.teacher_id:
-        conflict_teacher = db.query(TimetableEntry).filter(
-            TimetableEntry.teacher_id == teacher_id,
-            TimetableEntry.day == entry.day,
-            TimetableEntry.time_slot_id == entry.time_slot_id,
-            TimetableEntry.id != entry_id,
-            TimetableEntry.semester_year == entry.semester_year
-        ).first()
-        if conflict_teacher:
-            raise HTTPException(status_code=400, detail="Teacher is already booked for this time slot in another class.")
+    teacher_id = req.teacher_id or entry.teacher_id
+    room_id = req.room_id or entry.room_id
 
-    if room_id and room_id != entry.room_id:
-        conflict_room = db.query(TimetableEntry).filter(
-            TimetableEntry.room_id == room_id,
-            TimetableEntry.day == entry.day,
-            TimetableEntry.time_slot_id == entry.time_slot_id,
-            TimetableEntry.id != entry_id,
-            TimetableEntry.semester_year == entry.semester_year
-        ).first()
-        if conflict_room:
-            raise HTTPException(status_code=400, detail="Room is already occupied for this time slot.")
+    # Conflict Validation
+    error = check_timetable_conflict(
+        db, entry.day, entry.time_slot_id, entry.semester_year,
+        teacher_id=teacher_id, room_id=room_id, exclude_id=entry_id
+    )
+    if error:
+        raise HTTPException(status_code=400, detail=error)
 
-    if teacher_id:
-        entry.teacher_id = teacher_id
-    if subject_id:
-        entry.subject_id = subject_id
-    if room_id:
-        entry.room_id = room_id
+    if req.teacher_id:
+        entry.teacher_id = req.teacher_id
+    if req.subject_id:
+        entry.subject_id = req.subject_id
+    if req.room_id:
+        entry.room_id = req.room_id
 
     db.commit()
     db.refresh(entry)
@@ -354,6 +406,11 @@ def get_classes(db: Session = Depends(get_db), _=Depends(get_current_user)):
         {"id": c.id, "name": c.name, "dept_id": c.dept_id, "semester": c.semester}
         for c in classes
     ]
+
+@router.get("/slots")
+def get_slots(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    slots = db.query(TimeSlot).order_by(TimeSlot.slot_index).all()
+    return [{"id": s.id, "label": s.label, "slot_index": s.slot_index} for s in slots]
 
 
 @router.get("/status")

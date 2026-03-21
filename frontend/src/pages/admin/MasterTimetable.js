@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
-import { getTimetable, getClasses } from "../../services/api";
+import { getTimetable, getClasses, getTimeSlots } from "../../services/api";
 import toast from "react-hot-toast";
-
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const SLOTS = [
-  "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
-  "12:00 - 01:00", "01:00 - 02:00", "02:00 - 03:00", "03:00 - 04:00",
-];
+import ManualAssignmentModal from "../../components/admin/ManualAssignmentModal";
 
 export default function MasterTimetable() {
   const [semester, setSemester] = useState("2024-25");
@@ -15,9 +10,21 @@ export default function MasterTimetable() {
   const [entries, setEntries]   = useState([]);
   const [loading, setLoading]   = useState(false);
   const [classesLoading, setClassesLoading] = useState(true);
+  const [timeSlots, setTimeSlots] = useState([]);
 
-  // Load classes once
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [editingEntry, setEditingEntry] = useState(null);
+
+  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  // Load classes & Slots
   useEffect(() => {
+    setClassesLoading(true);
+    getTimeSlots()
+      .then(r => setTimeSlots(r.data || []))
+      .catch(() => toast.error("Could not load time slots"));
+
     getClasses()
       .then((r) => {
         setClasses(r.data || []);
@@ -27,21 +34,47 @@ export default function MasterTimetable() {
       .finally(() => setClassesLoading(false));
   }, []);
 
-  // Load entries when selected class or semester changes
-  useEffect(() => {
+  const loadTimetable = () => {
     if (!selected) return;
     setLoading(true);
     getTimetable({ class_id: selected.id, semester_year: semester })
       .then((r) => setEntries(r.data || []))
       .catch(() => toast.error("Could not load timetable"))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadTimetable();
   }, [selected, semester]);
 
-  // Build grid (Array to support multiple batches concurrent)
+  const handleSlotClick = (day, slot) => {
+    setSelectedSlot({
+      day,
+      time_slot_id: slot.id,
+      class_id: selected.id,
+      semester_year: semester
+    });
+    setEditingEntry(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEntryEdit = (e, entry) => {
+    e.stopPropagation();
+    setSelectedSlot({
+      day: entry.day,
+      time_slot_id: entry.time_slot_id,
+      class_id: selected.id,
+      semester_year: semester
+    });
+    setEditingEntry(entry);
+    setIsModalOpen(true);
+  };
+
+  // Build grid
   const grid = {};
-  DAYS.forEach((d) => { grid[d] = {}; SLOTS.forEach((s) => { grid[d][s] = []; }); });
+  DAYS.forEach((d) => { grid[d] = {}; timeSlots.forEach((s) => { grid[d][s.label] = []; }); });
   entries.forEach((e) => {
-    if (e.day && e.time_slot_label && grid[e.day]) {
+    if (e.day && e.time_slot_label && grid[e.day] && grid[e.day][e.time_slot_label]) {
       grid[e.day][e.time_slot_label].push(e);
     }
   });
@@ -58,7 +91,6 @@ export default function MasterTimetable() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          {/* Semester Filter */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Semester:</span>
             <input 
@@ -72,7 +104,6 @@ export default function MasterTimetable() {
 
           <div className="h-8 w-[1px] bg-gray-800 hidden md:block"></div>
 
-          {/* Class selector */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Class:</span>
             {classesLoading ? (
@@ -98,29 +129,24 @@ export default function MasterTimetable() {
         </div>
       </div>
 
-      {/* No timetable generated */}
       {!loading && entries.length === 0 && selected && (
         <div className="bg-amber-900/10 border border-amber-500/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-lg">
-          <div className="text-5xl mb-4 opacity-80">🛠️</div>
+          <div className="text-5xl mb-4 opacity-80 cursor-pointer hover:scale-110 transition-all" onClick={() => handleSlotClick("Monday", timeSlots[0])}>🛠️</div>
           <h3 className="text-lg font-bold text-amber-300">No Timetable Configured</h3>
           <p className="text-gray-400 text-sm mt-2 max-w-md">
-            The schedule for <span className="text-white font-semibold">{selected.name}</span> has not been generated yet. Please utilize the AI Timetable Engine to create it.
+            The schedule for <span className="text-white font-semibold">{selected.name}</span> has not been generated yet. Click any slot to assign manually or use the AI Engine.
           </p>
         </div>
       )}
 
-      {/* Loading spinner */}
-      {loading && (
+      {(loading || timeSlots.length === 0) ? (
         <div className="flex items-center justify-center h-64 bg-gray-900/20 rounded-2xl border border-gray-800">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            <div className="text-sm text-indigo-400 font-semibold tracking-widest animate-pulse">LOADING MATRIX...</div>
+            <div className="text-sm text-indigo-400 font-semibold tracking-widest animate-pulse uppercase tracking-[0.2em]">Matrix Initializing...</div>
           </div>
         </div>
-      )}
-
-      {/* Timetable grid */}
-      {!loading && entries.length > 0 && (
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-800 shadow-2xl bg-gray-900">
           <table className="w-full text-xs border-collapse">
             <thead>
@@ -136,30 +162,33 @@ export default function MasterTimetable() {
               </tr>
             </thead>
             <tbody>
-              {SLOTS.map((slot, si) => (
-                <tr key={slot} className="hover:bg-gray-800/20 transition-colors">
-                  <td className="p-4 text-gray-400 font-bold text-[11px] border-b border-r border-gray-800 text-center bg-gray-950/40 whitespace-nowrap">
-                    {slot.replace(' - ', '\n')}
+              {timeSlots.map((slot) => (
+                <tr key={slot.id} className="hover:bg-gray-800/10 transition-colors">
+                  <td className="p-4 text-gray-400 font-bold text-[11px] border-b border-r border-gray-800 text-center bg-gray-950/40 whitespace-pre-line">
+                    {slot.label.replace(' - ', '\n')}
                   </td>
                   {DAYS.map((day) => {
-                    const slotEntries = grid[day][slot];
+                    const slotEntries = grid[day][slot.label] || [];
                     return (
-                      <td key={day} className="p-2 border-b border-gray-800 align-top h-full min-w-[180px]">
-                        {slotEntries.length > 0 ? (
-                          <div className="flex flex-col gap-2 h-full">
-                            {slotEntries.map((e, idx) => (
-                              <div key={idx} className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:shadow-lg flex-1 ${
+                      <td key={day} 
+                        className="p-2 border-b border-gray-800 align-top h-full min-w-[180px] cursor-pointer hover:bg-white/[0.02] transition-all group"
+                        onClick={() => handleSlotClick(day, slot)}
+                      >
+                        <div className="flex flex-col gap-2 h-full min-h-[60px]">
+                          {slotEntries.length > 0 ? (
+                            slotEntries.map((e, idx) => (
+                              <div key={idx} 
+                                onClick={(ev) => handleEntryEdit(ev, e)}
+                                className={`rounded-xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.03] hover:shadow-xl flex-1 group/entry ${
                                 e.subject_type === 'lab' 
                                   ? 'bg-gradient-to-br from-amber-900/40 to-orange-950/20 border-amber-500/30 hover:border-amber-400/60' 
                                   : 'bg-gradient-to-br from-indigo-900/40 to-blue-950/20 border-indigo-500/30 hover:border-indigo-400/60'
                               }`}>
-                                {/* Batch Badge */}
                                 {e.batch_name && (
                                   <div className="absolute -top-2 -right-1 bg-gray-900 text-amber-400 border border-amber-500/50 text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-lg z-10 uppercase tracking-tighter">
                                     {e.batch_name.split(' - ').pop()}
                                   </div>
                                 )}
-                                
                                 <div className="mb-2">
                                   <div className={`font-black text-[12px] leading-tight mb-1 tracking-tight ${e.subject_type === 'lab' ? 'text-amber-200' : 'text-indigo-200'}`}>
                                     {e.subject_name}
@@ -168,26 +197,20 @@ export default function MasterTimetable() {
                                     <span className="opacity-50 text-[8px]">👤</span> {e.teacher_name}
                                   </div>
                                 </div>
-                                
                                 <div className="flex justify-between items-end mt-auto pt-2 border-t border-white/5">
                                   <div className="text-[9px] font-black font-mono text-gray-500 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
                                     {e.room_name}
                                   </div>
-                                  {e.is_substituted && (
-                                    <div className="flex h-2 w-2">
-                                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-rose-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" title="Substituted"></span>
-                                    </div>
-                                  )}
+                                  <div className="opacity-0 group-hover/entry:opacity-100 transition-opacity text-[8px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-1.5 py-0.5 rounded">Edit</div>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="h-full min-h-[80px] w-full rounded-xl border border-dashed border-gray-800/40 bg-gray-900/10 flex items-center justify-center text-gray-700 text-xs">
-                             —
-                          </div>
-                        )}
+                            ))
+                          ) : (
+                            <div className="h-full min-h-[60px] w-full rounded-xl border border-dashed border-gray-800/20 flex items-center justify-center text-gray-800 group-hover:text-indigo-500/50 transition-all font-light text-2xl">
+                              +
+                            </div>
+                          )}
+                        </div>
                       </td>
                     );
                   })}
@@ -198,23 +221,25 @@ export default function MasterTimetable() {
         </div>
       )}
 
-      {/* Legend */}
+      {selectedSlot && (
+        <ManualAssignmentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          slotData={selectedSlot}
+          entry={editingEntry}
+          onSave={loadTimetable}
+        />
+      )}
+
       {entries.length > 0 && (
         <div className="flex items-center gap-6 text-xs text-gray-400 bg-gray-900/50 p-4 rounded-xl border border-gray-800 w-full flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-emerald-500/20 border border-emerald-500/50 rounded" />
+            <div className="w-3 h-3 bg-indigo-500/20 border border-indigo-500/50 rounded" />
             <span className="font-medium">Theory Lecture</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-amber-500/20 border border-amber-500/50 rounded" />
-            <span className="font-medium">Lab Practical (Batch split)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative flex h-3 w-3 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-            </div>
-            <span className="font-medium">Substituted Session</span>
+            <span className="font-medium">Lab Practical</span>
           </div>
           <div className="ml-auto text-gray-500 font-semibold bg-black/20 px-3 py-1 rounded-full border border-gray-700">
             {entries.length} Total Sessions

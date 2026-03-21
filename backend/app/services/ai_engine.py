@@ -85,6 +85,9 @@ class TimetableEngine:
         teacher_day_count: Dict[Tuple, int] = {}
         class_day_count: Dict[Tuple, int] = {}
 
+        teacher_max_load_map = {t["id"]: t.get("max_load", 18) - t.get("admin_load", 0) for t in teachers}
+        teacher_total_load: Dict[int, int] = {}
+
         # Load existing entries to prevent cross-department conflicts
         if existing_entries:
             for e in existing_entries:
@@ -96,6 +99,8 @@ class TimetableEngine:
                         class_occupied.setdefault(key, set()).add(e["class_id"])
                     else:
                         batch_occupied.setdefault(key, set()).add(e["batch_id"])
+                    # Count existing load
+                    teacher_total_load[e["teacher_id"]] = teacher_total_load.get(e["teacher_id"], 0) + 1
 
         def is_free(teacher_id, room_id, class_id, batch_id, day, slot_id) -> Tuple[bool, str]:
             key = (day, slot_id)
@@ -111,7 +116,8 @@ class TimetableEngine:
                 if class_id in class_occupied.get(key, set()): return False, "class_conflict"
                 if batch_id in batch_occupied.get(key, set()): return False, "batch_conflict"
                 
-            if teacher_day_count.get((teacher_id, day), 0) >= self.max_per_day: return False, "teacher_overload"
+            if teacher_day_count.get((teacher_id, day), 0) >= self.max_per_day: return False, "teacher_overload_day"
+            if teacher_total_load.get(teacher_id, 0) >= teacher_max_load_map.get(teacher_id, 18): return False, "teacher_overload_weekly"
             if class_day_count.get((class_id, day), 0) >= self.max_per_day + 1: return False, "class_overload"
             return True, "ok"
 
@@ -124,6 +130,7 @@ class TimetableEngine:
             else:
                 batch_occupied.setdefault(key, set()).add(batch_id)
             teacher_day_count[(teacher_id, day)] = teacher_day_count.get((teacher_id, day), 0) + 1
+            teacher_total_load[teacher_id] = teacher_total_load.get(teacher_id, 0) + 1
             if not batch_id:
                 class_day_count[(class_id, day)] = class_day_count.get((class_id, day), 0) + 1
 
@@ -132,7 +139,7 @@ class TimetableEngine:
             dept_subjects = [s for s in subjects if s.get("dept_id") == dept_id]
             if not dept_subjects: dept_subjects = subjects[:5]
 
-            for subj in dept_subjects[:5]:
+            for subj in dept_subjects:
                 subj_type = subj.get("type", "theory")
                 target_rooms = labs if subj_type == "lab" else classrooms
                 if not target_rooms: target_rooms = rooms
@@ -144,11 +151,11 @@ class TimetableEngine:
                     continue
 
                 if subj_type == "lab" and class_batches.get(cls["id"]):
-                    # Schedule each batch 1 lecture per week
-                    target_entities = [{"batch_id": b["id"], "name": b["name"], "count": 1} for b in class_batches[cls["id"]]]
+                    # Use subject's weekly_load for labs (usually 2 or 4)
+                    target_entities = [{"batch_id": b["id"], "name": b["name"], "count": subj.get("weekly_load", 2)} for b in class_batches[cls["id"]]]
                 else:
-                    # Schedule whole class 2 theory lectures per week
-                    target_entities = [{"batch_id": None, "name": cls["name"], "count": 2}]
+                    # Use subject's weekly_load for theory (usually 3 or 4)
+                    target_entities = [{"batch_id": None, "name": cls["name"], "count": subj.get("weekly_load", 3)}]
 
                 for entity in target_entities:
                     placed = 0
@@ -157,34 +164,52 @@ class TimetableEngine:
                         attempts += 1
                         result.iterations += 1
                         day = random.choice(DAYS)
-                        slot = random.choice(time_slots[4:] if self.labs_afternoon and subj_type == "lab" and len(time_slots) > 4 else time_slots)
                         teacher = min(qualified, key=lambda t: teacher_day_count.get((t["id"], day), 0)) if self.balance_load else random.choice(qualified)
                         room = random.choice(target_rooms)
 
-                        ok, reason = is_free(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, slot["id"])
-                        if ok:
-                            slot_entry = ScheduleSlot(
-                                class_id=cls["id"],
-                                class_name=cls["name"],
-                                batch_id=entity["batch_id"],
-                                batch_name=entity["name"] if entity["batch_id"] else None,
-                                subject_id=subj["id"],
-                                subject_name=subj["name"],
-                                subject_type=subj_type,
-                                teacher_id=teacher["id"],
-                                teacher_name=teacher["name"],
-                                room_id=room["id"],
-                                room_name=room["name"],
-                                day=day,
-                                time_slot_id=slot["id"],
-                                time_slot_label=slot["label"]
-                            )
-                            result.slots.append(slot_entry)
-                            occupy(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, slot["id"])
-                            placed += 1
-                            result.logs.append(f"✓ [{entity['name']}] {subj['name']} → {teacher['name']} | {day} {slot['label']}")
+                        if subj_type == "lab":
+                            # Pick 2 consecutive slots for labs
+                            available_starts = time_slots[4:-1] if self.labs_afternoon and len(time_slots) > 4 else time_slots[:-1]
+                            if not available_starts:
+                                break
+                            start_slot = random.choice(available_starts)
+                            start_idx = time_slots.index(start_slot)
+                            next_slot = time_slots[start_idx + 1]
+
+                            ok1, _ = is_free(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, start_slot["id"])
+                            ok2, _ = is_free(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, next_slot["id"])
+                            
+                            if ok1 and ok2:
+                                s1 = ScheduleSlot(
+                                    class_id=cls["id"], class_name=cls["name"], batch_id=entity["batch_id"], batch_name=entity["name"] if entity["batch_id"] else None,
+                                    subject_id=subj["id"], subject_name=subj["name"], subject_type=subj_type, teacher_id=teacher["id"], teacher_name=teacher["name"], room_id=room["id"], room_name=room["name"], day=day, time_slot_id=start_slot["id"], time_slot_label=start_slot["label"]
+                                )
+                                s2 = ScheduleSlot(
+                                    class_id=cls["id"], class_name=cls["name"], batch_id=entity["batch_id"], batch_name=entity["name"] if entity["batch_id"] else None,
+                                    subject_id=subj["id"], subject_name=subj["name"], subject_type=subj_type, teacher_id=teacher["id"], teacher_name=teacher["name"], room_id=room["id"], room_name=room["name"], day=day, time_slot_id=next_slot["id"], time_slot_label=next_slot["label"]
+                                )
+                                result.slots.extend([s1, s2])
+                                occupy(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, start_slot["id"])
+                                occupy(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, next_slot["id"])
+                                placed += 2
+                                result.logs.append(f"✓ [{entity['name']}] Lab {subj['name']} → {teacher['name']} | {day} {start_slot['label']} & {next_slot['label']}")
+                            else:
+                                result.conflicts_detected += 1
                         else:
-                            result.conflicts_detected += 1
+                            # 1 hour slot for theory
+                            slot = random.choice(time_slots[4:] if self.labs_afternoon and len(time_slots) > 4 else time_slots)
+                            ok, reason = is_free(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, slot["id"])
+                            if ok:
+                                slot_entry = ScheduleSlot(
+                                    class_id=cls["id"], class_name=cls["name"], batch_id=entity["batch_id"], batch_name=entity["name"] if entity["batch_id"] else None,
+                                    subject_id=subj["id"], subject_name=subj["name"], subject_type=subj_type, teacher_id=teacher["id"], teacher_name=teacher["name"], room_id=room["id"], room_name=room["name"], day=day, time_slot_id=slot["id"], time_slot_label=slot["label"]
+                                )
+                                result.slots.append(slot_entry)
+                                occupy(teacher["id"], room["id"], cls["id"], entity["batch_id"], day, slot["id"])
+                                placed += 1
+                                result.logs.append(f"✓ [{entity['name']}] Theory {subj['name']} → {teacher['name']} | {day} {slot['label']}")
+                            else:
+                                result.conflicts_detected += 1
 
         result.conflicts_resolved = result.iterations - result.conflicts_detected
         result.success = len(result.slots) > 0

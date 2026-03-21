@@ -6,6 +6,7 @@ import ThemeToggle from "../../components/ThemeToggle";
 const NAV = [
   { to: "/teacher", label: "My Dashboard", icon: "⊞", end: true },
   { to: "/teacher/timetable", label: "My Timetable", icon: "📅" },
+  { to: "/teacher/master-timetable", label: "Master Timetable", icon: "🗓️" },
   { to: "/teacher/attendance", label: "My Attendance", icon: "✅" },
   { to: "/teacher/leave", label: "Leave Application", icon: "🌴" },
   { to: "/teacher/workload", label: "My Workload", icon: "📊" },

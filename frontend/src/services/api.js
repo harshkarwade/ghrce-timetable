@@ -61,6 +61,14 @@ export const getTimetable = (params = {}) =>
 
 export const getClasses = () => API.get("/timetable/classes");
 export const getTimetableStatus = () => API.get("/timetable/status");
+export const getTimeSlots = () => API.get("/timetable/slots");
+
+// Classes
+export const createClass = (data) => API.post("/classes/", data);
+export const updateClass = (id, data) => API.put(`/classes/${id}`, data);
+export const deleteClass = (id) => API.delete(`/classes/${id}`);
+export const createTimetableEntry = (data) => API.post("/timetable/", data);
+export const updateTimetableEntry = (id, data) => API.put(`/timetable/${id}`, data);
 
 export const reschedule = (date) =>
   API.post("/timetable/reschedule", { date });

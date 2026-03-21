@@ -11,6 +11,8 @@ const NAV = [
   { to: "/admin/room-timetables", label: "Room / Lab Timetables", icon: "🏛️" },
   { to: "/admin/teachers", label: "Manage Teachers", icon: "👥" },
   { to: "/admin/classes", label: "Manage Classes", icon: "🏫" },
+  { to: "/admin/subjects", label: "Manage Subjects", icon: "📚" },
+  { to: "/admin/rooms", label: "Manage Rooms", icon: "🏢" },
   { to: "/admin/leaves", label: "Leave Requests", icon: "🌴" },
   { to: "/admin/attendance", label: "Attendance & Reschedule", icon: "✅" },
   { to: "/admin/analytics", label: "Analytics", icon: "📊" },

@@ -7,102 +7,91 @@ import useAuthStore from "../store/authStore";
 export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [role, setRole] = useState("admin");
-  const [email, setEmail] = useState("admin@ghrce.edu");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const DEMO = {
-    admin: { email: "admin@ghrce.edu", password: "admin123" },
-    teacher: { email: "priya@ghrce.edu", password: "teacher123" },
-  };
-
-  const handleRoleSwitch = (r) => {
-    setRole(r);
-    setEmail(DEMO[r].email);
-    setPassword(DEMO[r].password);
-  };
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const { data } = await login(email, password);
+    try {
+      const { data } = await login(email, password);
 
-    localStorage.setItem("token", data.access_token);
-    localStorage.setItem("role", data.role);
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("role", data.role);
 
-    setAuth({
-      token: data.access_token,
-      role: data.role,
-      user_id: data.user_id,
-      teacher_id: data.teacher_id,
-      student_id: data.student_id
-    });
+      setAuth({
+        token: data.access_token,
+        role: data.role,
+        user_id: data.user_id,
+        teacher_id: data.teacher_id,
+        student_id: data.student_id
+      });
 
-    toast.success(`Welcome! Logged in as ${data.role}`);
-    
-    if (data.role === "admin") navigate("/admin");
-    else navigate("/teacher");
+      toast.success(`Welcome! Logged in as ${data.role}`);
+      
+      if (data.role === "admin") navigate("/admin");
+      else navigate("/teacher");
 
-  } catch (err) {
-    toast.error(err.response?.data?.detail || "Login failed");
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4"
       style={{ background: "radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 60%), #030712" }}>
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 mb-4">
-            <span className="text-3xl">🎓</span>
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-indigo-600/20 border border-indigo-500/30 mb-6 group transition-all hover:scale-105">
+            <span className="text-4xl group-hover:rotate-12 transition-transform">🎓</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">GH Raisoni College</h1>
-          <p className="text-gray-400 text-sm mt-1">AI Master Timetable System</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">GH Raisoni College</h1>
+          <p className="text-gray-400 text-sm mt-2 font-medium">AI Master Timetable System</p>
         </div>
 
-        <div className="flex bg-gray-800/60 rounded-xl p-1 mb-6">
-          {["admin", "teacher"].map((r) => (
-            <button key={r} onClick={() => handleRoleSwitch(r)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${role === r ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-300"}`}>
-              {r === "admin" ? "🔑 Admin" : "👤 Teacher"}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-6 space-y-4">
-          <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required
-              className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+        <form onSubmit={handleSubmit} className="bg-gray-900/80 border border-gray-700/50 rounded-3xl p-8 space-y-6 backdrop-blur-xl shadow-2xl">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
+            <input 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              type="email" 
+              placeholder="name@ghrce.edu"
+              required
+              className="w-full bg-gray-800/40 border border-gray-700/50 rounded-2xl px-5 py-4 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-gray-600" 
+            />
           </div>
-          <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">Password</label>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required
-              className="w-full bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-200 focus:outline-none focus:border-indigo-500" />
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1">Secret Password</label>
+            <input 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              type="password" 
+              placeholder="••••••••"
+              required
+              className="w-full bg-gray-800/40 border border-gray-700/50 rounded-2xl px-5 py-4 text-sm text-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-gray-600" 
+            />
           </div>
-          <button type="submit" disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 text-white py-3 rounded-xl font-semibold text-sm transition-all">
-            {loading ? "Signing in…" : `Sign In as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:from-gray-700 disabled:to-gray-800 text-white py-4 rounded-2xl font-bold text-sm transition-all transform active:scale-[0.98] shadow-lg shadow-indigo-600/20 mt-2"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Authenticating...
+              </span>
+            ) : "Sign In to Portal"}
           </button>
         </form>
-
-        <div className="mt-4 bg-gray-900/40 border border-gray-700/30 rounded-xl p-4 text-xs text-gray-400 space-y-1">
-          <p className="font-semibold text-gray-300 mb-2">Demo Credentials</p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-gray-500 uppercase font-bold text-[9px]">Admin</p>
-              <p>admin@ghrce.edu / admin123</p>
-            </div>
-            <div>
-              <p className="text-gray-500 uppercase font-bold text-[9px]">Teacher</p>
-              <p>priya@ghrce.edu / teacher123</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

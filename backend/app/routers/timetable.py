@@ -55,6 +55,7 @@ def _load_entries(db: Session):
     """Base query with all joinedloads."""
     return db.query(TimetableEntry).options(
         joinedload(TimetableEntry.class_),
+        joinedload(TimetableEntry.batch),
         joinedload(TimetableEntry.subject),
         joinedload(TimetableEntry.teacher),
         joinedload(TimetableEntry.original_teacher),

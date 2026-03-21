@@ -10,18 +10,21 @@ export default function ManageSubjects() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", dept_id: "", type: "theory", credits: 3, weekly_load: 3, code: "" });
 
-  const load = () => {
+  useEffect(() => {
+    let isMounted = true;
     setLoading(true);
+    
     Promise.all([getSubjects(), getDepartments()])
       .then(([sRes, dRes]) => {
+        if (!isMounted) return;
         setSubjects(sRes.data);
         setDepartments(dRes.data);
       })
       .catch(() => toast.error("Failed to load subjects"))
-      .finally(() => setLoading(false));
-  };
+      .finally(() => { if (isMounted) setLoading(false); });
 
-  useEffect(() => { load(); }, []);
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

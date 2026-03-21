@@ -12,19 +12,32 @@ export default function ManageTeachers() {
     designation: "", specialization: "", responsibilities: "",
     email: "", password: "teacher123", subject_ids: [] 
   });
-
-  const load = () => getTeachers().then(r => setTeachers(r.data)).catch(() => {});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
-    getDepartments().then(r => setDepts(r.data)).catch(() => {});
-    getSubjects().then(r => setSubjects(r.data)).catch(() => {});
+    let isMounted = true;
+    setLoading(true);
+    
+    Promise.all([
+      getTeachers(),
+      getDepartments(),
+      getSubjects()
+    ]).then(([tRes, dRes, sRes]) => {
+      if (!isMounted) return;
+      setTeachers(tRes.data);
+      setDepts(dRes.data);
+      setSubjects(sRes.data);
+    })
+    .catch(() => toast.error("Failed to load initial data"))
+    .finally(() => { if (isMounted) setLoading(false); });
+
+    return () => { isMounted = false; };
   }, []);
 
   const handleCreate = async () => {
     if (!form.name || !form.dept_id) { toast.error("Name and department required"); return; }
     try {
-      await createTeacher({ ...form, dept_id: +form.dept_id });
+      const newTeacher = await createTeacher({ ...form, dept_id: +form.dept_id });
       toast.success("Teacher created");
       setShowForm(false);
       setForm({ 
@@ -137,36 +150,47 @@ export default function ManageTeachers() {
         </div>
       )}
 
-      <div className="space-y-2">
-        {teachers.map(t => (
-          <div key={t.id} className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center font-bold flex-shrink-0">{t.avatar || "?"}</div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-200 flex items-center gap-2">
-                {t.name}
-                {t.designation && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-normal">{t.designation}</span>}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center h-64 bg-gray-900/20 rounded-2xl border border-gray-800 animate-pulse">
+           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+           <p className="text-xs font-black text-indigo-500 uppercase tracking-widest">Loading Records...</p>
+        </div>
+      ) : teachers.length === 0 ? (
+        <div className="text-center py-20 bg-gray-900/20 rounded-2xl border border-dashed border-gray-800">
+           <p className="text-gray-500 text-sm">No teachers found. Click '+ Add Teacher' to start.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {teachers.map(t => (
+            <div key={t.id} className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-4 flex items-center gap-4 transition-all hover:border-indigo-500/30">
+              <div className="w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center font-bold flex-shrink-0">{t.avatar || "?"}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-200 flex items-center gap-2">
+                  {t.name}
+                  {t.designation && <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 font-normal">{t.designation}</span>}
+                </div>
+                <div className="text-xs text-gray-400 flex items-center gap-2">
+                  {t.department?.name} 
+                  {t.specialization && <span className="text-gray-500">• {t.specialization}</span>}
+                </div>
+                {t.responsibilities && <div className="text-[10px] text-amber-400/80 mt-1 italic">Responsibility: {t.responsibilities} (Admin Load: {t.admin_load}h)</div>}
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {t.subjects?.map(s => (
+                    <span key={s.id} className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">{s.name}</span>
+                  ))}
+                </div>
               </div>
-              <div className="text-xs text-gray-400 flex items-center gap-2">
-                {t.department?.name} 
-                {t.specialization && <span className="text-gray-500">• {t.specialization}</span>}
-              </div>
-              {t.responsibilities && <div className="text-[10px] text-amber-400/80 mt-1 italic">Responsibility: {t.responsibilities} (Admin Load: {t.admin_load}h)</div>}
-              <div className="flex flex-wrap gap-1 mt-1">
-                {t.subjects?.map(s => (
-                  <span key={s.id} className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded-full">{s.name}</span>
-                ))}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-xs px-2 py-0.5 rounded-full border ${t.status === "present" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-red-500/20 text-red-300 border-red-500/30"}`}>
+                  {t.status}
+                </span>
+                <button onClick={() => handleToggleStatus(t)} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Toggle</button>
+                <button onClick={() => handleDelete(t.id)} className="text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Delete</button>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className={`text-xs px-2 py-0.5 rounded-full border ${t.status === "present" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-red-500/20 text-red-300 border-red-500/30"}`}>
-                {t.status}
-              </span>
-              <button onClick={() => handleToggleStatus(t)} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg">Toggle</button>
-              <button onClick={() => handleDelete(t.id)} className="text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 px-3 py-1.5 rounded-lg">Delete</button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,86 @@
+SUBJECTS
+=======
+id=35 dept=1 type=theory wl=3 name='AWS-Cloud Computing Services'
+id=56 dept=1 type=theory wl=3 name='BCT-Blockchain Technology'
+id=18 dept=1 type=theory wl=3 name='BI - Business Intelligence'
+id=7 dept=1 type=theory wl=3 name='DN-Data Networks'
+id=34 dept=1 type=lab wl=6 name='DSA-Data Structure and Algorithms'
+id=47 dept=1 type=theory wl=3 name='DSA-Data Structure and Algorithms'
+id=38 dept=1 type=theory wl=3 name='DV- Data visualization'
+id=39 dept=1 type=lab wl=6 name='DV- Data visualization'
+id=44 dept=1 type=theory wl=3 name='DWM-Data Warehousing and Mining'
+id=25 dept=1 type=theory wl=2 name='FIoT-Fundamentals of IoT'
+id=54 dept=1 type=theory wl=3 name='FLA-FLA-Formal Language and Automata'
+id=55 dept=1 type=theory wl=3 name='FLA-Formal Language and Automata'
+id=24 dept=1 type=lab wl=2 name='Minor-Project(PR)'
+id=4 dept=1 type=theory wl=3 name='OOPS-Object Oriented Programming'
+id=5 dept=1 type=lab wl=6 name='OOPS-Object Oriented Programming'
+id=14 dept=1 type=theory wl=3 name='OOPS-Object-oriented programming'
+id=51 dept=1 type=lab wl=2 name='OOPS-Object-oriented programming'
+id=31 dept=1 type=theory wl=3 name='R-DB-Relational database'
+id=32 dept=1 type=lab wl=8 name='R-DB-Relational database'
+id=1 dept=1 type=theory wl=3 name='SC-Soft Computing'
+id=2 dept=1 type=lab wl=4 name='SC-Soft Computing'
+id=53 dept=2 type=theory wl=3 name='AWS-Cloud Computing Services'
+id=15 dept=2 type=theory wl=2 name='CA - Computer Architecture'
+id=30 dept=2 type=theory wl=2 name='CA-Computer Architecture'
+id=49 dept=2 type=theory wl=3 name='DDBMS-Distributed database System'
+id=27 dept=2 type=theory wl=3 name='DSA-Data Structure and Algorithms'
+id=28 dept=2 type=lab wl=6 name='DSA-Data Structure and Algorithms'
+id=8 dept=2 type=theory wl=3 name='DSE-Data Science for Engineers'
+id=9 dept=2 type=lab wl=6 name='DSE-Data Science for Engineers'
+id=22 dept=2 type=theory wl=3 name='DV - Data visualization'
+id=23 dept=2 type=lab wl=6 name='DV - Data visualization'
+id=13 dept=2 type=theory wl=3 name='FLA-Formal Language and Automata'
+id=6 dept=2 type=lab wl=2 name='Minor-Project(PR)'
+id=10 dept=2 type=lab wl=2 name='OOPS-Object-oriented programming'
+id=19 dept=2 type=theory wl=3 name='OOPS-Object-oriented programming'
+id=3 dept=2 type=theory wl=3 name='OS-Operating System'
+id=20 dept=2 type=theory wl=3 name='R-DB-Relational database'
+id=21 dept=2 type=lab wl=6 name='R-DB-Relational database'
+id=42 dept=2 type=theory wl=3 name='SC-Soft Computing'
+id=43 dept=2 type=lab wl=6 name='SC-Soft Computing'
+id=52 dept=3 type=theory wl=3 name='AWS-Cloud Computing Services'
+id=40 dept=3 type=theory wl=3 name='BCT-Blockchain Technology'
+id=29 dept=3 type=theory wl=3 name='BI - Business Intelligence'
+id=33 dept=3 type=theory wl=3 name='DN-Data Networks'
+id=11 dept=3 type=theory wl=3 name='DSA-Data Structure and Algorithms'
+id=12 dept=3 type=lab wl=6 name='DSA-Data Structure and Algorithms'
+id=16 dept=3 type=theory wl=3 name='DV - Data visualization'
+id=17 dept=3 type=lab wl=6 name='DV - Data visualization'
+id=36 dept=3 type=theory wl=3 name='DWM-Data warehousing and mining'
+id=48 dept=3 type=theory wl=2 name='FIoT-Fundamentals of IoT'
+id=59 dept=3 type=theory wl=3 name='FLA-Formal Language and Automata'
+id=37 dept=3 type=lab wl=2 name='Minor-Project(PR)'
+id=41 dept=3 type=lab wl=4 name='OOPS-Object-oriented programming'
+id=50 dept=3 type=theory wl=3 name='OOPS-Object-oriented programming'
+id=45 dept=3 type=theory wl=3 name='R-DB-Relational database'
+id=46 dept=3 type=lab wl=2 name='R-DB-Relational database'
+id=57 dept=3 type=theory wl=3 name='SC-Soft Computing'
+id=58 dept=3 type=lab wl=6 name='SC-Soft Computing'
+id=26 dept=4 type=lab wl=2 name='Minor-Project(PR)'
+
+TEACHER-SUBJECT ASSIGNMENTS
+===========================
+[1] Dr. Achamma Thomas: [(1, 'SC-Soft Computing'), (2, 'SC-Soft Computing'), (3, 'OS-Operating System')]
+[2] Dr. Hansaraj Wakhede: [(3, 'OS-Operating System'), (4, 'OOPS-Object Oriented Programming'), (5, 'OOPS-Object Oriented Programming'), (6, 'Minor-Project(PR)'), (10, 'OOPS-Object-oriented programming')]
+[3] Dr. Archana Raut: [(6, 'Minor-Project(PR)'), (7, 'DN-Data Networks'), (8, 'DSE-Data Science for Engineers'), (9, 'DSE-Data Science for Engineers'), (10, 'OOPS-Object-oriented programming'), (11, 'DSA-Data Structure and Algorithms'), (12, 'DSA-Data Structure and Algorithms'), (16, 'DV - Data visualization')]
+[4] Dr. Sachin Harne: [(6, 'Minor-Project(PR)'), (11, 'DSA-Data Structure and Algorithms'), (12, 'DSA-Data Structure and Algorithms'), (13, 'FLA-Formal Language and Automata'), (14, 'OOPS-Object-oriented programming')]
+[5] Prof. Krupali Dhawale: [(6, 'Minor-Project(PR)'), (7, 'DN-Data Networks'), (8, 'DSE-Data Science for Engineers'), (15, 'CA - Computer Architecture'), (16, 'DV - Data visualization'), (17, 'DV - Data visualization'), (18, 'BI - Business Intelligence')]
+[6] Prof. Pranali Dhawas: [(1, 'SC-Soft Computing'), (2, 'SC-Soft Computing'), (10, 'OOPS-Object-oriented programming'), (19, 'OOPS-Object-oriented programming')]
+[7] Prof. Madhuri Sahu: [(13, 'FLA-Formal Language and Automata'), (14, 'OOPS-Object-oriented programming'), (15, 'CA - Computer Architecture'), (20, 'R-DB-Relational database'), (21, 'R-DB-Relational database'), (22, 'DV - Data visualization'), (23, 'DV - Data visualization')]
+[8] Prof. Minakshi Ramteke: [(3, 'OS-Operating System'), (9, 'DSE-Data Science for Engineers'), (10, 'OOPS-Object-oriented programming'), (20, 'R-DB-Relational database'), (21, 'R-DB-Relational database'), (24, 'Minor-Project(PR)'), (25, 'FIoT-Fundamentals of IoT')]
+[9] Prof. Ashwini Kukade: [(7, 'DN-Data Networks'), (17, 'DV - Data visualization'), (18, 'BI - Business Intelligence'), (26, 'Minor-Project(PR)'), (27, 'DSA-Data Structure and Algorithms'), (28, 'DSA-Data Structure and Algorithms'), (29, 'BI - Business Intelligence')]
+[10] Prof. Manisha Raut: [(19, 'OOPS-Object-oriented programming'), (20, 'R-DB-Relational database'), (30, 'CA-Computer Architecture'), (31, 'R-DB-Relational database'), (32, 'R-DB-Relational database')]
+[11] Prof. Saundarya Raut: [(21, 'R-DB-Relational database'), (22, 'DV - Data visualization'), (24, 'Minor-Project(PR)'), (25, 'FIoT-Fundamentals of IoT'), (27, 'DSA-Data Structure and Algorithms'), (28, 'DSA-Data Structure and Algorithms'), (33, 'DN-Data Networks')]
+[12] Prof. Ashish Talekar: [(7, 'DN-Data Networks'), (23, 'DV - Data visualization'), (24, 'Minor-Project(PR)'), (34, 'DSA-Data Structure and Algorithms'), (35, 'AWS-Cloud Computing Services'), (36, 'DWM-Data warehousing and mining'), (37, 'Minor-Project(PR)')]
+[13] Prof. Abhay Yeole: [(6, 'Minor-Project(PR)'), (24, 'Minor-Project(PR)'), (25, 'FIoT-Fundamentals of IoT'), (26, 'Minor-Project(PR)'), (38, 'DV- Data visualization'), (39, 'DV- Data visualization'), (40, 'BCT-Blockchain Technology'), (41, 'OOPS-Object-oriented programming')]
+[14] Prof. Ramadevi Salunkhe: [(26, 'Minor-Project(PR)'), (27, 'DSA-Data Structure and Algorithms'), (42, 'SC-Soft Computing'), (43, 'SC-Soft Computing'), (44, 'DWM-Data Warehousing and Mining'), (45, 'R-DB-Relational database'), (46, 'R-DB-Relational database')]
+[15] Prof. Yogesh Pathak: [(6, 'Minor-Project(PR)'), (27, 'DSA-Data Structure and Algorithms'), (28, 'DSA-Data Structure and Algorithms'), (34, 'DSA-Data Structure and Algorithms'), (41, 'OOPS-Object-oriented programming'), (47, 'DSA-Data Structure and Algorithms'), (48, 'FIoT-Fundamentals of IoT'), (49, 'DDBMS-Distributed database System')]
+[16] Prof. Komal Umare: [(24, 'Minor-Project(PR)'), (28, 'DSA-Data Structure and Algorithms'), (29, 'BI - Business Intelligence'), (31, 'R-DB-Relational database'), (32, 'R-DB-Relational database'), (50, 'OOPS-Object-oriented programming'), (51, 'OOPS-Object-oriented programming'), (52, 'AWS-Cloud Computing Services')]
+[17] Dr. Vijaya Choudhari (Prof. Nayan Raghatate ): [(10, 'OOPS-Object-oriented programming'), (13, 'FLA-Formal Language and Automata'), (19, 'OOPS-Object-oriented programming'), (26, 'Minor-Project(PR)'), (29, 'BI - Business Intelligence'), (30, 'CA-Computer Architecture'), (53, 'AWS-Cloud Computing Services')]
+[18] (F1) Prof. Ashwini Dange: [(24, 'Minor-Project(PR)'), (30, 'CA-Computer Architecture'), (31, 'R-DB-Relational database'), (42, 'SC-Soft Computing'), (43, 'SC-Soft Computing'), (46, 'R-DB-Relational database'), (54, 'FLA-FLA-Formal Language and Automata')]
+[19] (F3) Prof. Pallavi Lonkar: [(24, 'Minor-Project(PR)'), (31, 'R-DB-Relational database'), (32, 'R-DB-Relational database'), (55, 'FLA-Formal Language and Automata'), (56, 'BCT-Blockchain Technology'), (57, 'SC-Soft Computing'), (58, 'SC-Soft Computing')]
+[20] (F4) Prof. Deepa Das: [(24, 'Minor-Project(PR)'), (32, 'R-DB-Relational database'), (47, 'DSA-Data Structure and Algorithms'), (51, 'OOPS-Object-oriented programming'), (59, 'FLA-Formal Language and Automata')]
+[21] Prof. Pallavi Sambhare: [(33, 'DN-Data Networks')]
+[22] Prof. Chanchal Dahat: [(34, 'DSA-Data Structure and Algorithms')]

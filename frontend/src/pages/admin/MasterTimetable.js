@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getTimetable, getClasses, getTimeSlots } from "../../services/api";
 import toast from "react-hot-toast";
 import ManualAssignmentModal from "../../components/admin/ManualAssignmentModal";
+import useAuthStore from "../../store/authStore";
 
 /* ───────────────────────────────────────────────────────
    RECESS_LABEL  = the time-slot label that is always RECESS
@@ -12,6 +13,7 @@ const DAYS         = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "S
 const WORK_DAYS    = ["Monday", "Tuesday", "Wednesday", "Thursday"]; // Friday is PROJECT
 
 export default function MasterTimetable() {
+  const { role } = useAuthStore();
   const [semester, setSemester]   = useState("2024-25");
   const [classes,  setClasses]    = useState([]);
   const [selected, setSelected]   = useState(null);
@@ -54,6 +56,7 @@ export default function MasterTimetable() {
 
   // ── Slot-click handlers ─────────────────────────────────────────────────────
   const handleSlotClick = (day, slot) => {
+    if (role !== "admin") return;
     if (slot.label === RECESS_LABEL) return;
     setSelectedSlot({ day, time_slot_id: slot.id, class_id: selected.id, semester_year: semester });
     setEditingEntry(null);
@@ -61,6 +64,7 @@ export default function MasterTimetable() {
   };
   const handleEntryEdit = (ev, entry) => {
     ev.stopPropagation();
+    if (role !== "admin") return;
     setSelectedSlot({ day: entry.day, time_slot_id: entry.time_slot_id, class_id: selected.id, semester_year: semester });
     setEditingEntry(entry);
     setIsModalOpen(true);
@@ -301,7 +305,7 @@ export default function MasterTimetable() {
                           return (
                             <td
                               key={slot.id}
-                              className="p-1.5 border-b border-[var(--border-subtle)] align-top min-w-[150px] transition-all"
+                              className={`p-1.5 border-b border-[var(--border-subtle)] align-top min-w-[150px] transition-all ${role === 'admin' ? 'cursor-pointer hover:bg-indigo-500/5' : ''}`}
                               onClick={() => handleSlotClick(day, slot)}
                             >
                               <div className="flex flex-col gap-2 h-full min-h-[80px]">

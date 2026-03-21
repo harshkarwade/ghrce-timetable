@@ -26,62 +26,76 @@ export default function AdminLayout() {
   const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden transition-colors duration-300">
+    <div className="flex h-screen bg-[var(--bg-main)] text-[var(--text-main)] overflow-hidden transition-colors duration-300">
       {/* Sidebar */}
-      <aside className={`${collapsed ? "w-16" : "w-60"} flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700/50 flex flex-col transition-all duration-300`}>
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700/50 flex items-center justify-between">
+      <aside className={`${collapsed ? "w-16" : "w-64"} flex-shrink-0 bg-[var(--bg-sidebar)] border-r border-[var(--border-subtle)] flex flex-col transition-all duration-300 no-print`}>
+        <div className="p-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
           {!collapsed && (
-            <div>
-              <div className="text-sm font-bold text-white">GHRCE</div>
-              <div className="text-[10px] text-gray-400">Admin Portal</div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20">G</div>
+              <div>
+                <div className="text-sm font-black tracking-tight">GHRCE</div>
+                <div className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">Admin Portal</div>
+              </div>
             </div>
           )}
-          <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-white p-1 ml-auto">
+          <button onClick={() => setCollapsed(!collapsed)} className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 ml-auto">
             {collapsed ? "→" : "←"}
           </button>
         </div>
+        
         {!collapsed && (
-          <div className="px-4 py-2">
-            <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">🔑 Admin</span>
+          <div className="px-4 py-4">
+            <div className="bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/10 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-pulse"></span>
+              Administrative Access
+            </div>
           </div>
         )}
-        <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+
+        <nav className="flex-1 overflow-y-auto py-2 space-y-1 px-3">
           {NAV.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${isActive
-                  ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/30"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/40"}`
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${isActive
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--accent-soft)]"}`
               }>
-              <span className="text-base flex-shrink-0">{item.icon}</span>
+              <span className={`text-lg flex-shrink-0 transition-transform group-hover:scale-110`}>{item.icon}</span>
               {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-gray-200 dark:border-gray-700/50">
+
+        <div className="p-4 border-t border-[var(--border-subtle)]">
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all">
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all">
             <span>🚪</span>
             {!collapsed && <span>Logout</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-200 dark:border-gray-700/50 px-6 py-3 flex items-center justify-between flex-shrink-0 transition-colors duration-300">
-          <span className="text-sm font-semibold text-gray-300">GH Raisoni College of Engineering</span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-xs text-emerald-400 font-medium">AI Active</span>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        <header className="h-16 bg-[var(--bg-main)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] px-6 flex items-center justify-between flex-shrink-0 z-20 no-print">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-bold text-[var(--text-muted)] tracking-tight hidden sm:inline">GH Raisoni College of Engineering</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/10 px-3 py-1.5 rounded-xl">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">AI Optimizer Live</span>
             </div>
-            <span className="text-xs text-gray-500 mr-2">{new Date().toLocaleDateString("en-IN")}</span>
+            <div className="h-6 w-[1px] bg-[var(--border-subtle)] mx-1" />
             <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+
+        <main className="flex-1 overflow-y-auto bg-[var(--bg-main)]">
+          <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

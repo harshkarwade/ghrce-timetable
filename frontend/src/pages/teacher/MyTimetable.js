@@ -3,12 +3,12 @@ import { getTimetable, getTimeSlots } from "../../services/api";
 import useAuthStore from "../../store/authStore";
 import toast from "react-hot-toast";
 
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const RECESS_LABEL = "12:30 - 01:30";
 
 export default function MyTimetable() {
   const { teacherId } = useAuthStore();
-  const [semester, setSemester] = useState("SUMMER 2026");
+  const [semester, setSemester] = useState("2024-25");
   const [entries, setEntries] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(true);

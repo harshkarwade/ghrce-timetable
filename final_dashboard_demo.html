@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHRCE AI Timetable - Analytics Command Center</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0d0f1a;
+            --bg-card: #13162a;
+            --purple: #7f77dd;
+            --teal: #1d9e75;
+            --coral: #d85a30;
+            --blue: #378add;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --grad-primary: linear-gradient(135deg, #7f77dd 0%, #378add 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); min-height: 100vh; padding: 40px; }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Header Section */
+        header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+        .brand h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; background: var(--grad-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .brand p { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+        
+        .status-badge { display: flex; items-center; gap: 8px; background: rgba(31, 158, 117, 0.1); border: 1px solid rgba(31, 158, 117, 0.2); padding: 8px 16px; rounded-full; font-size: 12px; font-weight: 700; color: var(--teal); border-radius: 50px; }
+        .dot { width: 8px; h-8; background: var(--teal); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px; }
+        .kpi-card { background: var(--bg-card); border: 1px solid var(--border); padding: 24px; border-radius: 20px; transition: transform 0.3s ease; }
+        .kpi-card:hover { transform: translateY(-5px); border-color: rgba(127, 119, 221, 0.3); }
+        .kpi-label { font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        .kpi-value { font-size: 36px; font-weight: 800; margin: 8px 0; }
+        .kpi-sub { font-size: 12px; color: var(--teal); font-weight: 600; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 8px; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; }
+        .tab { padding: 12px 24px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; border-radius: 12px; transition: all 0.3s ease; white-space: nowrap; }
+        .tab:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .tab.active { background: var(--grad-primary); color: white; box-shadow: 0 10px 20px rgba(127, 119, 221, 0.2); }
+
+        /* Main Content */
+        .panel { display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 40px; min-height: 500px; position: relative; }
+        .panel.active { display: block; }
+        
+        .alert-banner { display: none; background: rgba(216, 90, 48, 0.1); border: 1px solid rgba(216, 90, 48, 0.3); padding: 15px 25px; border-radius: 15px; margin-bottom: 30px; color: #ff8c69; font-size: 14px; align-items: center; gap: 15px; }
+
+        .panel-header { margin-bottom: 30px; }
+        .panel-title { font-size: 20px; font-weight: 700; }
+        .panel-desc { color: var(--text-dim); font-size: 13px; margin-top: 5px; }
+
+        .chart-container { position: relative; height: 400px; width: 100%; }
+
+        .dual-view { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        
+        /* Teacher Card */
+        .faculty-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .faculty-card { background: var(--bg-deep); border: 1px solid var(--border); padding: 20px; border-radius: 16px; }
+        .progress-bar { height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 10px; }
+        
+        select { background: var(--bg-deep); color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 10px; outline: none; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand">
+                <h1>GHRCE Analytics Center</h1>
+                <p>College Timetable & Resource Intelligence Platform</p>
+            </div>
+            <div class="status-badge">
+                <div class="dot"></div>
+                AI OPTIMIZER LIVE
+            </div>
+        </header>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Lectures</div>
+                <div class="kpi-value">266</div>
+                <div class="kpi-sub">↑ 12% from last sem</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Active Faculty</div>
+                <div class="kpi-value">21</div>
+                <div class="kpi-sub">All departments active</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Campus Rooms</div>
+                <div class="kpi-value">14</div>
+                <div class="kpi-sub">9 labs | 5 classrooms</div>
+            </div>
+            <div class="kpi-card" style="border-color: var(--teal); background: rgba(29, 158, 117, 0.05);">
+                <div class="kpi-label">Substituted</div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub" style="color: var(--text-dim)">No active conflicts</div>
+            </div>
+        </div>
+
+        <div id="overloadAlert" class="alert-banner">
+            <span style="font-size: 20px;">⚠️</span>
+            <span><strong>Workload Warning:</strong> High-utilization detected for select departments. 3 Faculty members currently exceed the 15-hour threshold.</span>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showPanel(1)">Faculty Workload</div>
+            <div class="tab" onclick="showPanel(2)">Teacher Comparison</div>
+            <div class="tab" onclick="showPanel(3)">Schedule Density</div>
+            <div class="tab" onclick="showPanel(4)">Room/Lab Util %</div>
+            <div class="tab" onclick="showPanel(5)">Department Load</div>
+            <div class="tab" onclick="showPanel(6)">Faculty Bandwidth</div>
+        </div>
+
+        <!-- 1. Faculty Workload -->
+        <div id="panel1" class="panel active">
+            <div class="panel-header">
+                <h2 class="panel-title">Weekly Load Distribution</h2>
+                <p class="panel-desc">Total hours assigned per faculty across all sessions</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="workloadChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. Teacher Comparison -->
+        <div id="panel2" class="panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="panel-title">Teacher Performance Audit</h2>
+                    <p class="panel-desc">Compare metrics between two specific faculty members</p>
+                </div>
+                <div>
+                    <select id="teacher1">
+                        <option>Dr. Satish</option>
+                        <option>Prof. Amol</option>
+                    </select>
+                    <select id="teacher2">
+                        <option>Prof. Manish</option>
+                        <option>Ms. Priya</option>
+                    </select>
+                </div>
+            </div>
+            <div class="dual-view">
+                <div style="height: 350px;"><canvas id="radarChart"></canvas></div>
+                <div style="height: 350px;"><canvas id="compareBarChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- 3. Schedule Density -->
+        <div id="panel3" class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Schedule Density Mapping</h2>
+                <p class="panel-desc">Session concentration by day and peak slot utilization</p>
+            </div>
+            <div class="dual-view">
+                <div style="height: 350px;"><canvas id="densityDayChart"></canvas></div>
+                <div style="height: 350px;"><canvas id="densitySlotChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- 4. Room Util -->
+        <div id="panel4" class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Room & Laboratory Utilization</h2>
+                <p class="panel-desc">Occupancy rates for 14 on-campus academic spaces</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="roomChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 5. Dept Load -->
+        <div id="panel5" class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Institutional Load Balance</h2>
+                <p class="panel-desc">Total teaching hours per department branch</p>
+            </div>
+            <div class="dual-view">
+                <div style="height: 400px;"><canvas id="deptBarChart"></canvas></div>
+                <div style="height: 400px;"><canvas id="deptDonutChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- 6. Bandwidth -->
+        <div id="panel6" class="panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2 class="panel-title">Faculty Bandwidth Dashboard</h2>
+                    <p class="panel-desc">Live capacity monitoring per member</p>
+                </div>
+                <select id="filterBandwidth">
+                    <option>Show All</option>
+                    <option>Overloaded Only</option>
+                </select>
+            </div>
+            <div class="faculty-list" id="facultyBandwidthList">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Mock
+        const teachers = ["Dr. Satish", "Prof. Amol", "Prof. Manish", "Ms. Priya", "Mr. Rahul", "Dr. Neha", "Prof. Sunil", "Ms. Kavita"];
+        const load = [18, 14, 16, 9, 12, 17, 10, 8];
+        const depts = ["CS", "AI", "CSE-AI", "CSE-AIML"];
+        
+        // Colors
+        const coral = '#d85a30';
+        const teal = '#1d9e75';
+        const purple = '#7f77dd';
+        const blue = '#378add';
+
+        // Initialize Charts
+        window.onload = () => {
+            initWorkload();
+            initComparison();
+            initDensity();
+            initRoomUtil();
+            initDeptLoad();
+            initBandwidth();
+            
+            // Check for overload
+            if(load.some(l => l > 15)) {
+                document.getElementById('overloadAlert').style.display = 'flex';
+            }
+        };
+
+        function showPanel(num) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('panel' + num).classList.add('active');
+            document.querySelector('.tabs .tab:nth-child(' + num + ')').classList.add('active');
+        }
+
+        function initWorkload() {
+            new Chart(document.getElementById('workloadChart'), {
+                type: 'bar',
+                data: {
+                    labels: teachers,
+                    datasets: [{
+                        label: 'Weekly Hours',
+                        data: load,
+                        backgroundColor: load.map(l => l > 15 ? coral : (l < 10 ? blue : teal)),
+                        borderRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { border: { display: false }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        function initComparison() {
+            new Chart(document.getElementById('radarChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Utilization', 'Substitutions', 'Lab Load', 'Student Feedback', 'Timely Attendance'],
+                    datasets: [{
+                        label: 'Dr. Satish',
+                        data: [90, 80, 70, 85, 95],
+                        borderColor: purple, backgroundColor: 'rgba(127, 119, 221, 0.2)'
+                    }, {
+                        label: 'Prof. Manish',
+                        data: [70, 60, 90, 75, 80],
+                        borderColor: blue, backgroundColor: 'rgba(55, 138, 221, 0.2)'
+                    }]
+                },
+                options: {
+                    scales: { 
+                        r: { grid: { color: 'rgba(255,255,255,0.1)' }, angleLines: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#94a3b8' }, ticks: { display: false } }
+                    }
+                }
+            });
+
+            new Chart(document.getElementById('compareBarChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{ label: 'Dr. Satish', data: [16, 16, 18, 16], backgroundColor: purple },
+                               { label: 'Prof. Manish', data: [14, 15, 14, 15], backgroundColor: blue }]
+                },
+                options: {
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        function initDensity() {
+            new Chart(document.getElementById('densityDayChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    datasets: [{ label: 'Sessions', data: [52, 48, 55, 60, 51], backgroundColor: teal }]
+                },
+                options: { plugins: { title: { display: true, text: 'Daily Concentration', color: 'white' } } }
+            });
+
+            new Chart(document.getElementById('densitySlotChart'), {
+                type: 'line',
+                data: {
+                    labels: ['8am', '10am', '12pm', '2pm', '4pm'],
+                    datasets: [{ label: 'Slot Util %', data: [65, 90, 40, 85, 60], borderColor: blue, fill: true, backgroundColor: 'rgba(55, 138, 221, 0.1)', tension: 0.4 }]
+                },
+                options: { plugins: { title: { display: true, text: 'Hourly Utilization Peak', color: 'white' } } }
+            });
+        }
+
+        function initRoomUtil() {
+            new Chart(document.getElementById('roomChart'), {
+                type: 'bar',
+                indexAxis: 'y',
+                data: {
+                    labels: ['CR-101', 'CR-102', 'CR-103', 'LAB-1', 'LAB-2', 'LAB-3', 'CR-104', 'LAB-4', 'AUD_1', 'CR_201'],
+                    datasets: [{ label: 'Util %', data: [85, 70, 90, 95, 88, 72, 60, 92, 40, 65], backgroundColor: teal, borderRadius: 5 }]
+                },
+                options: {
+                    scales: {
+                        x: { max: 100, ticks: { color: '#94a3b8' } },
+                        y: { ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        function initDeptLoad() {
+            new Chart(document.getElementById('deptBarChart'), {
+                type: 'bar',
+                indexAxis: 'y',
+                data: {
+                    labels: depts,
+                    datasets: [{ data: [85, 60, 45, 76], backgroundColor: [purple, teal, coral, blue] }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+
+            new Chart(document.getElementById('deptDonutChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: depts,
+                    datasets: [{ data: [85, 60, 45, 76], backgroundColor: [purple, teal, coral, blue], borderWidth: 0 }]
+                },
+                options: { cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+            });
+        }
+
+        function initBandwidth() {
+            const list = document.getElementById('facultyBandwidthList');
+            teachers.forEach((name, i) => {
+                const perc = (load[i] / 16) * 100;
+                const color = load[i] > 15 ? coral : (load[i] < 10 ? blue : teal);
+                const card = `
+                    <div class="faculty-card">
+                        <div style="display: flex; justify-content: space-between; align-items: top;">
+                            <div>
+                                <div style="font-weight: 700;">${name}</div>
+                                <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Dept: AI Architecture</div>
+                            </div>
+                            <div style="font-weight: 800; color: ${color}">${load[i]}h</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(perc, 100)}%; background: ${color}"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--text-dim);">
+                            <span>CAPACITY: ${Math.round(perc)}%</span>
+                            <span>${load[i] > 15 ? 'OVERLOADED' : 'OPTIMAL'}</span>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += card;
+            });
+        }
+    </script>
+</body>
+</html>

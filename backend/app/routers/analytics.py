@@ -1,18 +1,26 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from typing import Optional, List
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.models import TimetableEntry, Teacher, Room, Subject, Class
+from app.models.models import TimetableEntry, Teacher, Room, Subject, Class, TimeSlot
 
 router = APIRouter()
 
 @router.get("/workload")
-def teacher_workload(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+def teacher_workload(dept_id: Optional[int] = None, day: Optional[str] = None, semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+    query = db.query(Teacher.id, Teacher.name, Teacher.avatar, Teacher.status, func.count(TimetableEntry.id).label("count")) \
+              .outerjoin(TimetableEntry, TimetableEntry.teacher_id == Teacher.id)
+    
+    if day:
+        query = query.filter(TimetableEntry.day == day)
+    
+    if dept_id:
+        query = query.filter(Teacher.dept_id == dept_id)
+        
     results = (
-        db.query(Teacher.id, Teacher.name, Teacher.avatar, Teacher.status, func.count(TimetableEntry.id).label("count"))
-        .outerjoin(TimetableEntry, TimetableEntry.teacher_id == Teacher.id)
-        .filter((TimetableEntry.semester_year == semester_year) | (TimetableEntry.semester_year == None))
+        query.filter((TimetableEntry.semester_year == semester_year) | (TimetableEntry.semester_year == None))
         .group_by(Teacher.id, Teacher.name, Teacher.avatar, Teacher.status)
         .all()
     )
@@ -40,20 +48,34 @@ def room_utilization(semester_year: str = "2024-25", db: Session = Depends(get_d
     return result
 
 @router.get("/subject-distribution")
-def subject_distribution(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+def subject_distribution(dept_id: Optional[int] = None, day: Optional[str] = None, semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+    query = db.query(Subject.name, func.count(TimetableEntry.id).label("count")) \
+              .join(TimetableEntry, TimetableEntry.subject_id == Subject.id)
+    
+    if day:
+        query = query.filter(TimetableEntry.day == day)
+    
+    if dept_id:
+        query = query.filter(Subject.dept_id == dept_id)
+        
     results = (
-        db.query(Subject.name, func.count(TimetableEntry.id).label("count"))
-        .join(TimetableEntry, TimetableEntry.subject_id == Subject.id)
-        .filter(TimetableEntry.semester_year == semester_year)
+        query.filter(TimetableEntry.semester_year == semester_year)
         .group_by(Subject.name)
         .all()
     )
     return [{"subject": r.name, "count": r.count} for r in results]
 
 @router.get("/summary")
-def summary(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
-    total_lectures = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.semester_year == semester_year).scalar()
-    substitutions = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.is_substituted == True, TimetableEntry.semester_year == semester_year).scalar()
+def summary(day: Optional[str] = None, semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+    q = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.semester_year == semester_year)
+    if day:
+        q = q.filter(TimetableEntry.day == day)
+    total_lectures = q.scalar()
+
+    sub_q = db.query(func.count(TimetableEntry.id)).filter(TimetableEntry.is_substituted == True, TimetableEntry.semester_year == semester_year)
+    if day:
+        sub_q = sub_q.filter(TimetableEntry.day == day)
+    substitutions = sub_q.scalar()
     active_teachers = db.query(func.count(Teacher.id)).filter(Teacher.status == "present").scalar()
     absent_teachers = db.query(func.count(Teacher.id)).filter(Teacher.status == "absent").scalar()
     total_rooms = db.query(func.count(Room.id)).scalar()
@@ -95,15 +117,42 @@ def day_load(semester_year: str = "2024-25", db: Session = Depends(get_db), _=De
     return result
 
 @router.get("/department-load")
-def department_load(semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
+def department_load(day: Optional[str] = None, semester_year: str = "2024-25", db: Session = Depends(get_db), _=Depends(get_current_user)):
     """Returns lecture count grouped by department name."""
     from app.models.models import Department
+    query = db.query(Department.name, func.count(TimetableEntry.id).label("count")) \
+              .join(Subject, Subject.dept_id == Department.id) \
+              .join(TimetableEntry, TimetableEntry.subject_id == Subject.id) \
+              .filter(TimetableEntry.semester_year == semester_year)
+    
+    if day:
+        query = query.filter(TimetableEntry.day == day)
+
+    results = query.group_by(Department.name).all()
+    return [{"dept": r.name, "count": r.count} for r in results]
+
+@router.get("/heatmap")
+def get_heatmap(dept_id: Optional[int] = None, day: Optional[str] = None, semester_year: str = "2024-25", db: Session = Depends(get_db)):
+    """Returns total session count per (Day, TimeSlot) for heatmap visualization."""
+    query = db.query(TimetableEntry.day, TimetableEntry.time_slot_id, func.count(TimetableEntry.id).label("count"))
+    
+    if dept_id:
+        query = query.join(Subject, TimetableEntry.subject_id == Subject.id).filter(Subject.dept_id == dept_id)
+    
+    if day:
+        query = query.filter(TimetableEntry.day == day)
+        
     results = (
-        db.query(Department.name, func.count(TimetableEntry.id).label("count"))
-        .join(Subject, Subject.dept_id == Department.id)
-        .join(TimetableEntry, TimetableEntry.subject_id == Subject.id)
-        .filter(TimetableEntry.semester_year == semester_year)
-        .group_by(Department.name)
+        query.filter(TimetableEntry.semester_year == semester_year)
+        .group_by(TimetableEntry.day, TimetableEntry.time_slot_id)
         .all()
     )
-    return [{"dept": r.name, "count": r.count} for r in results]
+    
+    # We also need the time slot labels for the frontend
+    slots = db.query(TimeSlot).order_by(TimeSlot.slot_index).all()
+    slot_map = {s.id: s.label for s in slots}
+    
+    return [
+        {"day": r.day, "slot_id": r.time_slot_id, "label": slot_map.get(r.time_slot_id, "?"), "count": r.count}
+        for r in results
+    ]

@@ -5,6 +5,7 @@ Usage (reset):  python seed.py --reset
 """
 import sys
 import os
+sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import SessionLocal, engine, Base
@@ -26,6 +27,7 @@ if RESET:
     print("⚠️  Resetting all data...")
     # Drop in reverse FK order
     db.execute(text("DELETE FROM substitute_assignments"))
+    db.execute(text("DELETE FROM teaching_assignments"))
     db.execute(text("DELETE FROM attendance"))
     db.execute(text("DELETE FROM timetable_entries"))
     db.execute(text("DELETE FROM student_attendance"))
@@ -96,191 +98,188 @@ for u in [
 db.commit()
 print(f"  ✓ {len(user_map)} users  (passwords re-hashed)")
 
-# ── Subjects ──────────────────────────────────────────────────────────────────
+import json
+
+# ── Load Subject Distribution Data ───────────────────────────────────────────
+dist_path = os.path.join(os.path.dirname(__file__), "subject_distribution.json")
+with open(dist_path, "r", encoding="utf-8") as f:
+    distribution = json.load(f)
+
+# ── Departments ───────────────────────────────────────────────────────────────
+# Extract unique branches from distribution
+branches = sorted(list(set(d["branch"] for d in distribution if d["branch"])))
+dept_map = {}
+for b_code in branches:
+    obj = db.query(Department).filter(Department.code == b_code).first()
+    if not obj:
+        obj = Department(name=f"Dept of {b_code}", code=b_code)
+        db.add(obj)
+        db.flush()
+    dept_map[b_code] = obj
+
+db.commit()
+print(f"  ✓ {len(dept_map)} departments created from Excel.")
+
+# ── Subjects & Teachers ───────────────────────────────────────────────────────
 subj_map = {}
-for s in [
-    # CS
-    {"name": "Data Structures",        "dept": "CS",  "credits": 4, "type": "theory", "code": "CS301"},
-    {"name": "Algorithms",             "dept": "CS",  "credits": 4, "type": "theory", "code": "CS302"},
-    {"name": "Database Management",    "dept": "CS",  "credits": 4, "type": "theory", "code": "CS303"},
-    {"name": "Operating Systems",      "dept": "CS",  "credits": 4, "type": "theory", "code": "CS304"},
-    {"name": "Computer Networks",      "dept": "CS",  "credits": 3, "type": "theory", "code": "CS305"},
-    {"name": "Artificial Intelligence","dept": "CS",  "credits": 4, "type": "theory", "code": "CS401"},
-    {"name": "Machine Learning",       "dept": "CS",  "credits": 4, "type": "theory", "code": "CS402"},
-    {"name": "Web Technologies",       "dept": "CS",  "credits": 3, "type": "theory", "code": "CS403"},
-    {"name": "Software Engineering",   "dept": "CS",  "credits": 3, "type": "theory", "code": "CS404"},
-    {"name": "CS Lab",                 "dept": "CS",  "credits": 2, "type": "lab",    "code": "CS391"},
-    # ECE
-    {"name": "Digital Electronics",    "dept": "ECE", "credits": 4, "type": "theory", "code": "EC301"},
-    {"name": "VLSI Design",            "dept": "ECE", "credits": 3, "type": "theory", "code": "EC302"},
-    {"name": "Embedded Systems",       "dept": "ECE", "credits": 3, "type": "theory", "code": "EC303"},
-    {"name": "Signal Processing",      "dept": "ECE", "credits": 4, "type": "theory", "code": "EC304"},
-    {"name": "Communication Systems",  "dept": "ECE", "credits": 4, "type": "theory", "code": "EC305"},
-    {"name": "ECE Lab",                "dept": "ECE", "credits": 2, "type": "lab",    "code": "EC391"},
-]:
-    obj = db.query(Subject).filter(Subject.code == s["code"]).first()
-    if not obj:
-        obj = Subject(
-            name=s["name"],
-            dept_id=dept_map[s["dept"]].id,
-            credits=s["credits"],
-            type=s["type"],
-            code=s["code"],
-        )
-        db.add(obj)
-        db.flush()
-    subj_map[s["code"]] = obj
+teacher_map = {}
 
-db.commit()
-print(f"  ✓ {len(subj_map)} subjects")
-
-# ── Teachers ──────────────────────────────────────────────────────────────────
-teacher_count = 0
-for t in [
-    {"name": "Dr. Priya Sharma",   "dept": "CS",  "email": "priya@ghrce.edu",   "subjects": ["CS301","CS302","CS303"]},
-    {"name": "Prof. Rajesh Kumar", "dept": "CS",  "email": "rajesh@ghrce.edu",  "subjects": ["CS304","CS305","CS391"]},
-    {"name": "Dr. Anita Desai",    "dept": "ECE", "email": "anita@ghrce.edu",   "subjects": ["EC301","EC302","EC391"]},
-    {"name": "Prof. Suresh Patel", "dept": "ME",  "email": "suresh@ghrce.edu",  "subjects": []},
-    {"name": "Dr. Meena Joshi",    "dept": "CS",  "email": "meena@ghrce.edu",   "subjects": ["CS401","CS402","CS403"]},
-    {"name": "Prof. Vikram Singh", "dept": "CE",  "email": "vikram@ghrce.edu",  "subjects": []},
-    {"name": "Dr. Kavita Nair",    "dept": "ECE", "email": "kavita@ghrce.edu",  "subjects": ["EC303","EC304","EC305"]},
-    {"name": "Prof. Amit Gupta",   "dept": "CS",  "email": "amit@ghrce.edu",    "subjects": ["CS404","CS391"]},
-]:
-    email = t["email"].lower()
-    user = user_map.get(email)
-    dept_key = t["dept"] if t["dept"] in dept_map else "CS"
-    avatar = "".join(
-        w[0] for w in t["name"].split() if w[0].isupper()
-    )[:2].upper()
-
-    obj = db.query(Teacher).filter(Teacher.name == t["name"]).first()
-    if not obj:
-        obj = Teacher(
-            user_id=user.id if user else None,
-            name=t["name"],
-            dept_id=dept_map[dept_key].id,
-            avatar=avatar,
-            max_load=5,
-            status="present",
-        )
-        db.add(obj)
-        db.flush()
-        teacher_count += 1
-
-    # Always sync subjects
-    obj.subjects = [subj_map[c] for c in t["subjects"] if c in subj_map]
-    db.flush()
-
-db.commit()
-print(f"  ✓ {teacher_count} teachers created  ({db.query(Teacher).count()} total)")
-
-# ── Rooms ─────────────────────────────────────────────────────────────────────
-room_count = 0
-for r in [
-    {"name": "Room 101", "capacity": 60, "type": "classroom", "building": "Main Block", "floor": 1},
-    {"name": "Room 102", "capacity": 60, "type": "classroom", "building": "Main Block", "floor": 1},
-    {"name": "Room 201", "capacity": 80, "type": "classroom", "building": "Main Block", "floor": 2},
-    {"name": "Room 202", "capacity": 80, "type": "classroom", "building": "Main Block", "floor": 2},
-    {"name": "CS Lab 1", "capacity": 30, "type": "lab",       "building": "CS Block",   "floor": 1},
-    {"name": "CS Lab 2", "capacity": 30, "type": "lab",       "building": "CS Block",   "floor": 1},
-    {"name": "ECE Lab",  "capacity": 30, "type": "lab",       "building": "ECE Block",  "floor": 1},
-]:
-    if not db.query(Room).filter(Room.name == r["name"]).first():
-        db.add(Room(**r))
-        room_count += 1
-
-db.commit()
-print(f"  ✓ {room_count} rooms/labs created  ({db.query(Room).count()} total)")
-
-# ── Classes ───────────────────────────────────────────────────────────────────
-class_count = 0
-for c in [
-    {"name": "CS-A (Sem 5)",  "dept": "CS",  "semester": 5, "strength": 60},
-    {"name": "CS-B (Sem 5)",  "dept": "CS",  "semester": 5, "strength": 60},
-    {"name": "CS-A (Sem 3)",  "dept": "CS",  "semester": 3, "strength": 60},
-    {"name": "ECE-A (Sem 5)", "dept": "ECE", "semester": 5, "strength": 60},
-    {"name": "ECE-B (Sem 3)", "dept": "ECE", "semester": 3, "strength": 60},
-]:
-    if not db.query(Class).filter(Class.name == c["name"]).first():
-        db.add(Class(
-            name=c["name"],
-            dept_id=dept_map[c["dept"]].id,
-            semester=c["semester"],
-            strength=c["strength"],
-        ))
-        class_count += 1
-
-db.commit()
-print(f"  ✓ {class_count} classes created  ({db.query(Class).count()} total)")
-
-# ── Batches ───────────────────────────────────────────────────────────────────
-batch_count = 0
-for cls in db.query(Class).all():
-    for i in range(1, 4): # Create 3 batches per class
-        b_name = f"{cls.name} - B{i}"
-        if not db.query(Batch).filter(Batch.name == b_name, Batch.class_id == cls.id).first():
-            db.add(Batch(name=b_name, class_id=cls.id))
-            batch_count += 1
-db.commit()
-print(f"  ✓ {batch_count} batches created ({db.query(Batch).count()} total)")
-
-# ── Students ──────────────────────────────────────────────────────────────────
-student_count = 0
-for cls in db.query(Class).all():
-    batches = db.query(Batch).filter(Batch.class_id == cls.id).all()
-    if not batches: continue
+for entry in distribution:
+    s_name = entry["course"].strip()
+    s_code = entry["code"].strip() or s_name
     
-    # Create 6 students per class (2 per batch)
-    for i in range(1, 7):
-        s_name = f"Student {cls.name.replace(' ', '')} {i}"
-        enrollment = f"ENR{cls.dept_id}{cls.semester}00{i}"
-        batch = batches[(i-1) % len(batches)]
-        email = f"student{cls.id}_{i}@ghrce.edu".lower()
+    def to_int(v):
+        if not v or v.strip() == "-": return 0
+        try: return int(v.strip())
+        except: return 0
         
+    theory = to_int(entry.get("theory"))
+    practical = to_int(entry.get("practical"))
+    
+    # Track codes created
+    s_code_t = f"{s_code}-T" if practical > 0 else s_code
+    s_code_p = f"{s_code}-P" if theory > 0 else s_code
+    
+    if theory > 0:
+        obj_t = db.query(Subject).filter(Subject.code == s_code_t).first()
+        if not obj_t:
+            obj_t = Subject(
+                name=s_name,
+                dept_id=dept_map[entry["branch"]].id if entry["branch"] in dept_map else dept_map[branches[0]].id,
+                credits=theory,
+                type="theory",
+                code=s_code_t,
+                weekly_load=theory,
+                semester=int(entry["sem"]) if entry.get("sem") and str(entry["sem"]).isdigit() else None
+            )
+            db.add(obj_t)
+            db.flush()
+            
+    if practical > 0:
+        obj_p = db.query(Subject).filter(Subject.code == s_code_p).first()
+        if not obj_p:
+            obj_p = Subject(
+                name=s_name,
+                dept_id=dept_map[entry["branch"]].id if entry["branch"] in dept_map else dept_map[branches[0]].id,
+                credits=practical,
+                type="lab",
+                code=s_code_p,
+                weekly_load=practical,
+                semester=int(entry["sem"]) if entry.get("sem") and str(entry["sem"]).isdigit() else None
+            )
+            db.add(obj_p)
+            db.flush()
+
+    # 2. Teacher
+    t_name = entry["faculty"].strip()
+    if t_name not in teacher_map:
+        email = t_name.lower().replace(" ", ".") + "@ghrce.edu"
         user = db.query(User).filter(User.email == email).first()
         if not user:
             user = User(
                 email=email,
-                password_hash=hash_password("student123"),
-                role="student",
-                is_active=True,
+                password_hash=hash_password("teacher123"),
+                role="teacher",
+                is_active=True
             )
             db.add(user)
             db.flush()
-        else:
-            user.password_hash = hash_password("student123")
-            db.flush()
-
-        if not db.query(Student).filter(Student.enrollment_number == enrollment).first():
-            db.add(Student(
+            
+        obj = db.query(Teacher).filter(Teacher.name == t_name).first()
+        if not obj:
+            avatar = "".join(w[0] for w in t_name.split() if w[0].isupper())[:2]
+            obj = Teacher(
                 user_id=user.id,
-                name=s_name,
-                enrollment_number=enrollment,
-                class_id=cls.id,
-                batch_id=batch.id
-            ))
-            student_count += 1
+                name=t_name,
+                dept_id=dept_map[entry["branch"]].id if entry["branch"] in dept_map else dept_map[branches[0]].id,
+                avatar=avatar,
+                max_load=24, # Increased for dense Excel distribution
+                status="present"
+            )
+            db.add(obj)
+            db.flush()
+        teacher_map[t_name] = obj
+
+    # 3. Associate Teacher with Subjects
+    t_obj = teacher_map[t_name]
+    if theory > 0:
+        s_obj_t = db.query(Subject).filter(Subject.code == s_code_t).first()
+        if s_obj_t and s_obj_t not in t_obj.subjects:
+            t_obj.subjects.append(s_obj_t)
+    if practical > 0:
+        s_obj_p = db.query(Subject).filter(Subject.code == s_code_p).first()
+        if s_obj_p and s_obj_p not in t_obj.subjects:
+            t_obj.subjects.append(s_obj_p)
+
 db.commit()
-print(f"  ✓ {student_count} students created ({db.query(Student).count()} total)")
+print(f"  ✓ {db.query(Subject).count()} subjects and {len(teacher_map)} teachers synchronized.")
+
+# ── Classes & Batches ─────────────────────────────────────────────────────────
+# Format: Branch-Sem-Section (e.g. CSE-AIML-Sem5-B)
+unique_classes = set()
+for entry in distribution:
+    if entry["branch"] and entry["sem"] and entry["section"]:
+        unique_classes.add((entry["branch"], entry["sem"], entry["section"]))
+
+class_map = {}
+for b, s, sec in unique_classes:
+    c_name = f"{b}-Sem{s}-{sec}"
+    obj = db.query(Class).filter(Class.name == c_name).first()
+    if not obj:
+        obj = Class(
+            name=c_name,
+            dept_id=dept_map[b].id,
+            semester=int(s),
+            strength=60
+        )
+        db.add(obj)
+        db.flush()
+    class_map[c_name] = obj
+
+    # Create batches A1, A2, A3 or B1, B2, B3...
+    prefix = sec[0] if sec else "A"
+    for i in range(1, 4):
+        b_name = f"{prefix}{i}"
+        if not db.query(Batch).filter(Batch.name == b_name, Batch.class_id == obj.id).first():
+            db.add(Batch(name=b_name, class_id=obj.id))
+
+db.commit()
+print(f"  ✓ {len(class_map)} classes and associated batches created.")
+
+# ── Rooms ─────────────────────────────────────────────────────────────────────
+for r in [
+    {"name": "F01", "capacity": 60, "type": "classroom", "building": "Main", "floor": 3},
+    {"name": "F02", "capacity": 60, "type": "classroom", "building": "Main", "floor": 3},
+    {"name": "F03", "capacity": 60, "type": "classroom", "building": "Main", "floor": 3},
+    {"name": "F26", "capacity": 60, "type": "classroom", "building": "Main", "floor": 3},
+    {"name": "E33", "capacity": 60, "type": "classroom", "building": "E-Wing", "floor": 3},
+    {"name": "W36", "capacity": 60, "type": "classroom", "building": "W-Wing", "floor": 3},
+    {"name": "W37", "capacity": 60, "type": "classroom", "building": "W-Wing", "floor": 3},
+    {"name": "G03", "capacity": 60, "type": "classroom", "building": "Main", "floor": 4},
+    {"name": "E36", "capacity": 60, "type": "classroom", "building": "E-Wing", "floor": 3},
+    {"name": "C02", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 0},
+    {"name": "C03", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 0},
+    {"name": "C07", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 0},
+    {"name": "C13A", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 1},
+    {"name": "C13B", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 1},
+    {"name": "E17", "capacity": 30, "type": "lab", "building": "E-Wing", "floor": 1},
+    {"name": "C08", "capacity": 30, "type": "lab", "building": "C-Wing", "floor": 0},
+    {"name": "W21", "capacity": 30, "type": "lab", "building": "W-Wing", "floor": 2},
+]:
+    if not db.query(Room).filter(Room.name == r["name"]).first():
+        db.add(Room(**r))
 
 # ── Time Slots ────────────────────────────────────────────────────────────────
-slot_count = 0
-for s in [
-    {"label": "08:00 - 09:00", "slot_index": 0, "start_time": "08:00", "end_time": "09:00"},
-    {"label": "09:00 - 10:00", "slot_index": 1, "start_time": "09:00", "end_time": "10:00"},
-    {"label": "10:00 - 11:00", "slot_index": 2, "start_time": "10:00", "end_time": "11:00"},
-    {"label": "11:00 - 12:00", "slot_index": 3, "start_time": "11:00", "end_time": "12:00"},
-    {"label": "12:00 - 01:00", "slot_index": 4, "start_time": "12:00", "end_time": "13:00"},
-    {"label": "01:00 - 02:00", "slot_index": 5, "start_time": "13:00", "end_time": "14:00"},
-    {"label": "02:00 - 03:00", "slot_index": 6, "start_time": "14:00", "end_time": "15:00"},
-    {"label": "03:00 - 04:00", "slot_index": 7, "start_time": "15:00", "end_time": "16:00"},
-]:
-    if not db.query(TimeSlot).filter(TimeSlot.slot_index == s["slot_index"]).first():
-        db.add(TimeSlot(**s))
-        slot_count += 1
+for i, label in enumerate([
+    "09:30 - 10:30", "10:30 - 11:30", "11:30 - 12:30", 
+    "12:30 - 01:30", # RECESS
+    "01:30 - 02:30", "02:30 - 03:30", "03:30 - 04:30", "04:30 - 05:30"
+]):
+    if not db.query(TimeSlot).filter(TimeSlot.slot_index == i).first():
+        db.add(TimeSlot(label=label, slot_index=i, start_time=label.split(" - ")[0], end_time=label.split(" - ")[1]))
 
 db.commit()
-print(f"  ✓ {slot_count} time slots created  ({db.query(TimeSlot).count()} total)")
+print(f"  ✓ Time slots synchronized.")
 
 db.close()
 

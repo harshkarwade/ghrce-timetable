@@ -57,30 +57,24 @@ The system implements a robust **Role-Based Access Control (RBAC)** model.
 
 ## 3. The AI Engine: Logic & Constraints 🤖
 
-The core of the system is a **Constraint Satisfaction Problem (CSP)** engine with **Backtracking** optimization.
+The core of the system is a **Hybrid AI Strategy** that combines deterministic construction with evolutionary optimization to achieve 100% feasibility and high user satisfaction.
 
-### 3.1 Scheduling Flow
+### 3.1 Phase 1: Constraint Programming (CSP)
+This phase builds a valid, conflict-free skeletal timetable using a **Backtracking Search** with the **MRV (Minimum Remaining Values)** heuristic.
 1.  **Ingestion**: Gathers Teachers, Rooms, Subjects, and TimeSlots.
-2.  **Locking**: Identifies existing entries to build a "locked" state of the world.
-3.  **Backtracking Loop**:
-    -   Picks a Class/Batch.
-    -   Selects a Subject based on weekly load.
-    -   Finds a qualified Teacher (respecting the **Ownership Lock**).
-    -   Allocates Room and Slot.
-4.  **Collision Detection**: Validates against 6 primary constraints:
-    -   **Teacher Collision**: Is the teacher already in another class?
-    -   **Room Occupancy**: Is the room taken?
-    -   **Class Overlap**: Are students already in a lecture?
-    -   **Subject-per-Day**: Prevents the same subject appearing multiple times in one day.
-    -   **Recess Guard**: Skips the mid-day break slot.
-    -   **Weekly Load**: Ensures faculty hours do not exceed their `max_load`.
+2.  **Forward Checking**: Prunes variable domains after each assignment to maintain global consistency.
+3.  **Institutional Constraints**: Validates against primary constraints:
+    -   **Teacher Collision**: Faculty identifier cannot be in the same slot twice.
+    -   **Room Occupancy**: Rooms cannot be double-booked.
+    -   **Class/Batch Overlap**: Students cannot have overlapping lectures.
+    -   **Lab Batch Separation**: Batches B1, B2, B3 of the same subject/class must be separated.
+    -   **Dynamic Relaxation**: If a deadlock is detected at 1M iterations, the engine fallback to allow same-subject theory sessions on the same day.
 
-### 3.2 Dynamic Rescheduling
-When a teacher marks themselves **"Absent"**, the system triggers a **Conflict Resolution Loop**:
--   Identifies all affected slots.
--   Searches for available substitutes in the same department.
--   Prioritizes teachers qualified for the specific subject.
--   Logs the swap in a `SubstituteAssignment` table for auditing.
+### 3.2 Phase 2: Genetic Algorithm (GA)
+Once a 100% valid "skeleton" is found, the **Genetic Algorithm** optimizes it for soft constraints.
+-   **Fitness Function**: Scores based on Student Gaps (-10 to -60 penalty), Core Subjects in Morning (+150 reward), and Faculty Preferences.
+-   **Validated Mutation**: Uses "Validated Swaps" to improve schedules without breaking any Phase 1 hard constraints.
+-   **Stability**: Evolved over 30 generations to ensure peak academic fitness.
 
 ---
 

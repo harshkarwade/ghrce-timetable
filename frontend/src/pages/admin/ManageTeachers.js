@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getDepartments, getSubjects } from "../../services/api";
+import { useState, useEffect } from "react";
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getDepartments, getSubjects, rebalanceWorkload } from "../../services/api";
 import toast from "react-hot-toast";
 
 export default function ManageTeachers() {
@@ -8,33 +8,50 @@ export default function ManageTeachers() {
   const [subjects, setSubjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ 
-    name: "", dept_id: "", max_load: 18, admin_load: 0, 
+    name: "", dept_id: "", max_load: 16, admin_load: 0, 
     designation: "", specialization: "", responsibilities: "",
     email: "", password: "teacher123", subject_ids: [] 
   });
   const [loading, setLoading] = useState(true);
+  const [rebalancing, setRebalancing] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const load = () => {
     setLoading(true);
-    
     Promise.all([
       getTeachers(),
       getDepartments(),
       getSubjects()
     ]).then(([tRes, dRes, sRes]) => {
-      if (!isMounted) return;
       setTeachers(tRes.data);
       setDepts(dRes.data);
       setSubjects(sRes.data);
     })
     .catch(() => toast.error("Failed to load initial data"))
-    .finally(() => { if (isMounted) setLoading(false); });
+    .finally(() => setLoading(false));
+  };
 
-    return () => { isMounted = false; };
-  }, []);
+  const handleRebalance = async () => {
+    if (!window.confirm("This will automatically redistribute high workloads (>16h). Continue?")) return;
+    setRebalancing(true);
+    try {
+      const { data } = await rebalanceWorkload();
+      toast.success(data.message);
+      load();
+    } catch (err) {
+      toast.error("Rebalance failed");
+    } finally {
+      setRebalancing(false);
+    }
+  };
 
   const handleCreate = async () => {
+// ... existing logic ...
     if (!form.name || !form.dept_id) { toast.error("Name and department required"); return; }
     try {
       const newTeacher = await createTeacher({ ...form, dept_id: +form.dept_id });
@@ -80,9 +97,18 @@ export default function ManageTeachers() {
           <h2 className="text-xl font-bold text-white">Manage Teachers</h2>
           <p className="text-gray-400 text-sm">{teachers.length} registered</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium">
-          + Add Teacher
-        </button>
+        <div className="flex gap-3">
+          <button 
+            disabled={rebalancing}
+            onClick={handleRebalance} 
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all ${rebalancing ? 'bg-gray-800 text-gray-500 border-gray-700' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'}`}
+          >
+            {rebalancing ? "Rebalancing..." : "⚡ Bulk Rebalance"}
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-medium">
+            + Add Teacher
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -181,9 +207,18 @@ export default function ManageTeachers() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${t.status === "present" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-red-500/20 text-red-300 border-red-500/30"}`}>
-                  {t.status}
-                </span>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded border font-black uppercase tracking-tighter ${
+                    t.load > 16 ? "bg-red-500/10 text-red-500 border-red-500/20" : 
+                    t.load > 10 ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : 
+                    "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                  }`}>
+                    {t.load > 16 ? "Overloaded" : t.load > 10 ? "Normal" : "Underloaded"}
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${t.status === "present" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-red-500/20 text-red-300 border-red-500/30"}`}>
+                    {t.status}
+                  </span>
+                </div>
                 <button onClick={() => handleToggleStatus(t)} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Toggle</button>
                 <button onClick={() => handleDelete(t.id)} className="text-xs bg-red-900/40 hover:bg-red-800/60 text-red-400 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">Delete</button>
               </div>

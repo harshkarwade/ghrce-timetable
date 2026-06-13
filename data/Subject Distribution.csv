@@ -1,0 +1,62 @@
+Sr. No,Name of Faculty,UG/PG,Sem,Section,Branch,Code,Course,Theory,Tutorial,Practical,Batch,Total,Expected Total Number of Students,Project,Total Number of Theory Courses,Total Number of Practical Courses,Total Load
+1,Prof. Achamma Thomas,UG,5,A,AI,Soft Computing,Soft Computing,3,-,6,"A1, A2, A3",9,,,,,9
+2,Dr. Hansaraj Wankhede,UG,7,A,AI,Responsible AI,Responsible AI,2,-,6,"A1, A2, A3",8,,,,,11
+,,UG,5,A,AI,Operating System,Operating System,3,-,0,,3,,,,,
+3,Dr. Archana Raut,UG,7,A,AI,Design Analysis and Algorithms,Design Analysis and Algorithms,3,-,6,"A1, A2, A3",9,,,,,18
+,,UG,5,A,AI,Object-Oriented Programming,Object-Oriented Programming,3,-,6,"A1, A2, A3",9,,,,,
+4,Dr. Sachin Harne,UG,3,B,CAI,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"B1, B2, B3",9,,,,,15
+,,UG,3,B,AIML,Fundamentals of IoT,Fundamentals of IoT,2,-,0,,2,,,,,
+,,UG,7,"A, B",AI,Large Language Models,Large Language Models,4,-,0,,4,,,,,
+5,Prof. Krupali Dhawale,UG,7,"A, B",CAI,Natural Language Processing,Natural Language Processing,3,-,6,"B1, B2, B3",9,,,,,18
+,,UG,5,A,AIML,Relational Database,Relational Database,3,-,6,"A1, A2, A3",9,,,,,
+6,Prof. Pranali Dhawas,UG,5,B,AI,SC-Soft Computing,SC-Soft Computing,3,-,6,"B1, B2, B3",9,,,,,15
+,,UG,3,B,AI,Computer System Architecture,Computer System Architecture,2,-,0,,2,,,,,
+,,UG,7,A,CAI,Large Language Models,Large Language Models,4,-,0,,4,,,,,
+7,Prof. Madhuri Sahu,UG,5,B,AI,Relational Database,Relational Database,3,-,6,"B1, B2, B3",9,,,,,18
+,,UG,7,"A, B",AIML,Natural Language Processing,Natural Language Processing,3,-,6,"B1, B2, B3",9,,,,,
+8,Prof. Minakshi Ramteke,UG,5,B,AI,Operating System,Operating System,3,-,0,,3,,,,,15
+,,UG,5,B,AIML,Relational Database,Relational Database,3,-,6,"B1, B2, B3",9,,,,,
+,,UG,7,A,AI,Data Networks,Data Networks,3,-,0,,3,,,,,
+9,Prof. Ashwini Kukade,UG,7,A,AIML,Responsible AI,Responsible AI,2,-,6,"A1, A2, A3",8,,,,,17
+,,UG,5,B,AI,Object-Oriented Programming,Object-Oriented Programming,3,-,6,"B1, B2, B3",9,,,,,
+10,Prof. Manisha Raut,UG,5,A,AI,Relational Database,Relational Database,3,-,6,"A1, A2, A3",9,,,,,15
+,,UG,3,A,AI,Computer System Architecture,Computer System Architecture,2,-,0,,2,,,,,
+,,UG,3,OE-1,,Foundation of AI,Foundation of AI,4,-,0,,4,,,,,
+11,Prof. Saundarya Raut,UG,3,C,AIML,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"C1, C2, C3",9,,,,,17
+,,UG,7,A,CAI,Responsible AI,Responsible AI,2,-,6,"A1, A2, A3",8,,,,,
+12,Prof. Ashish Talekar,UG,3,B,AI,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"B1, B2, B3",9,,,,,18
+,,UG,5,A,AIML,Object-Oriented Programming,Object-Oriented Programming,3,-,6,"A1, A2, A3",9,,,,,
+13,Prof. Vaishali Shende,UG,5,"A, B",AI,Formal Language and Automata,Formal Language and Automata,3,-,0,,3,,,,,15
+,,UG,5,"A, B",AIML,Formal Language and Automata,Formal Language and Automata,3,-,0,,3,,,,,
+,,UG,5,A,CAI,Relational Database,Relational Database,3,-,6,"A1, A2, A3",9,,,,,
+14,Prof. Abhay Yeole,UG,7,"A, B",AIML,Large Language Models,Large Language Models,4,-,0,,4,,,,,17
+,,UG,5,B,AIML,Object-Oriented Programming,Object-Oriented Programming,3,-,6,"B1, B2, B3",9,,,,,
+,,UG,7,A,ETC,Machine Learning,Machine Learning,4,-,0,,4,,,,,
+15,Prof. Ramadevi Salunkhe,UG,3,B,AIML,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"B1, B2, B3",9,,,,,18
+,,UG,5,A,AIML,Soft Computing,Soft Computing,3,-,6,"A1, A2, A3",9,,,,,
+16,Dr. Yogesh Pathak,UG,3,A,AIML,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"A1, A2, A3",9,,,,,16
+,,UG,7,A,ETRX,Machine Learning,Machine Learning,4,-,0,,4,,,,,
+,,UG,5,A,AIML,Data Networks,Data Networks,3,-,0,,3,,,,,
+17,Prof. Komal Umare,UG,3,A,AI,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"A1, A2, A3",9,,,,,15
+,,UG,5,"A, B",CAI,Data Networks,Data Networks,3,-,0,,3,,,,,
+,,UG,5,"A, B",AIML,Data Networks,Data Networks,3,-,0,,3,,,,,
+18,Prof. Ashwini Dange,UG,5,B,AI,Formal Language and Automata,Formal Language and Automata,3,-,0,,3,,,,,14
+,,UG,3,C,AIML,Fundamentals of IoT,Fundamentals of IoT,2,-,0,,2,,,,,
+,,UG,5,A,CAI,Object-Oriented Programming,Object-Oriented Programming,3,-,6,"A1, A2, A3",9,,,,,
+19,Prof. Deepa Das,UG,3,A,CAI,Fundamentals of IoT,Fundamentals of IoT,2,-,0,,2,,,,,16
+,,UG,5,B,AIML,Soft Computing,Soft Computing,3,-,6,"B1, B2, B3",9,,,,,
+,,UG,7,A,AIML,Recommendation System,Recommendation System,3,-,0,,3,,,,,
+,,,,,,PG DIPLOMA,PG DIPLOMA,2,-,0,,2,,,,,
+20,Prof. Pallavi Lonkar,UG,3,A,AIML,Fundamentals of IoT,Fundamentals of IoT,2,-,0,,2,,,,,14
+,,UG,5,A,CAI,Soft Computing,Soft Computing,3,-,6,"A1, A2, A3",9,,,,,
+,,UG,7,A,CAI,Recommendation system,Recommendation system,3,-,0,,3,,,,,
+21,Dr. Vijaya Choudhari,UG,5,A,AIML,Formal Language and Automata,Formal Language and Automata,3,-,0,,3,,,,,15
+,,UG,5,A,CAI,Formal Language and Automata,Formal Language and Automata,3,-,0,,3,,,,,
+,,UG,3,A,CAI,Data Structure and Algorithms,Data Structure and Algorithms,3,-,6,"A1, A2, A3",9,,,,,
+22,Prof. Pallavi Sambhare,UG,1,,,Computer Programming,Computer Programming,2,-,6,,8,,,,,18
+,,UG,1,,,Foundations of Data Analytics,Foundations of Data Analytics,2,-,8,,10,,,,,
+23,Prof. Chanchal Dahat,UG,1,,,Computer Programming,Computer Programming,2,-,8,,10,,,,,18
+,,UG,1,,,Foundations of Data Analytics,Foundations of Data Analytics,2,-,6,,8,,,,,
+24,New Faculty,UG,1,,,Foundations of Data Analytics,Foundations of Data Analytics,1,-,6,,7,,,,,9
+,,UG,1,,,Computer Programming,Computer Programming,0,-,2,,2,,,,,
+TOTAL LOAD,,,,,,,,167,0,204,,371,,,,,371

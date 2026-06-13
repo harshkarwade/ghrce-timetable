@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getRooms, createRoom } from "../../services/api";
+import { getRooms, createRoom, updateRoom, deleteRoom } from "../../services/api";
 import toast from "react-hot-toast";
 
 const ROOM_TYPES = ["classroom", "lab", "seminar"];
@@ -8,6 +8,7 @@ export default function ManageRooms() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: "", capacity: 60, type: "classroom", building: "", floor: "" });
 
   const load = () => {
@@ -23,13 +24,43 @@ export default function ManageRooms() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createRoom({ ...form, capacity: parseInt(form.capacity) });
-      toast.success("Room added!");
+      const roomData = { ...form, capacity: parseInt(form.capacity) };
+      if (editingId) {
+        await updateRoom(editingId, roomData);
+        toast.success("Room updated!");
+      } else {
+        await createRoom(roomData);
+        toast.success("Room added!");
+      }
       setShowForm(false);
+      setEditingId(null);
       setForm({ name: "", capacity: 60, type: "classroom", building: "", floor: "" });
       load();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to add room");
+      toast.error(err.response?.data?.detail || "Failed to save room");
+    }
+  };
+
+  const handleEdit = (room) => {
+    setEditingId(room.id);
+    setForm({ 
+      name: room.name, 
+      capacity: room.capacity, 
+      type: room.type, 
+      building: room.building || "", 
+      floor: room.floor || "" 
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this room? This may affect existing timetable entries.")) return;
+    try {
+      await deleteRoom(id);
+      toast.success("Room deleted");
+      load();
+    } catch (err) {
+      toast.error("Failed to delete room. It might be in use.");
     }
   };
 
@@ -55,12 +86,22 @@ export default function ManageRooms() {
           )}
         </div>
       </div>
-      <div className={`self-start px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-        room.type === "lab"
-          ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
-          : "border-teal-500/40 text-teal-400 bg-teal-500/10"
-      }`}>
-        {room.type === "lab" ? "Lab" : "Class"}
+      <div className={`self-start flex flex-col items-end gap-2`}>
+        <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+          room.type === "lab"
+            ? "border-amber-500/40 text-amber-400 bg-amber-500/10"
+            : "border-teal-500/40 text-teal-400 bg-teal-500/10"
+        }`}>
+          {room.type === "lab" ? "Lab" : "Class"}
+        </div>
+        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => handleEdit(room)} className="p-1.5 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors" title="Edit">
+            ✏️
+          </button>
+          <button onClick={() => handleDelete(room.id)} className="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-400 transition-colors" title="Delete">
+            🗑️
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -116,9 +157,13 @@ export default function ManageRooms() {
           </div>
           <div className="col-span-2 md:col-span-3 flex gap-3 pt-2">
             <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm px-6 py-2 rounded-xl transition-all">
-              ✓ Save Room
+              {editingId ? "✓ Update Room" : "✓ Save Room"}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-xl border border-gray-700 hover:border-gray-500 transition-all">
+            <button 
+              type="button" 
+              onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", capacity: 60, type: "classroom", building: "", floor: "" }); }} 
+              className="text-gray-400 hover:text-white text-sm px-4 py-2 rounded-xl border border-gray-700 hover:border-gray-500 transition-all font-bold"
+            >
               Cancel
             </button>
           </div>

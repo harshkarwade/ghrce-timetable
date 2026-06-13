@@ -16,9 +16,13 @@ from app.models.models import (
     SubstituteAssignment,
     Attendance,
     StudentAttendance,
+    TeachingAssignment,
+    Notice,
 )
 from app.schemas.schemas import GenerateRequest, RescheduleRequest, TimetableEntryCreate, TimetableEntryUpdate
-from app.services.ai_engine import TimetableEngine, ReschedulingEngine
+from app.services.ai_engine import TimetableEngine, ReschedulingEngine, get_shortcode, get_initials
+from app.services.reporting_service import ReportingService
+from fastapi.responses import Response, StreamingResponse
 
 router = APIRouter()
 
@@ -47,6 +51,10 @@ def entry_to_dict(e: TimetableEntry) -> dict:
         "original_teacher_name": (
             e.original_teacher.name if e.original_teacher else None
         ),
+        "subject_shortcode": e.subject_shortcode,
+        "faculty_initials": e.faculty_initials,
+        "dept_code": e.dept_code,
+        "section_code": e.section_code,
         "semester_year": e.semester_year,
     }
 
@@ -95,12 +103,28 @@ def generate_timetable(
     subjects = db.query(Subject).all()
     rooms = db.query(Room).all()
     time_slots = db.query(TimeSlot).order_by(TimeSlot.slot_index).all()
+    assignments = db.query(TeachingAssignment).filter(TeachingAssignment.semester_year == req.semester_year).all()
     
-    existing_entries = []
+    existing_entries_raw = _load_entries(db).filter(TimetableEntry.semester_year == req.semester_year).all()
+    
+    # ── Scope Filtering ───────────────────────────────────────────────────────
     if req.department_id:
-        existing_entries = [entry_to_dict(e) for e in _load_entries(db).filter(TimetableEntry.semester_year == req.semester_year).all()]
+        # We only generate for classes in this department
+        target_classes = [c for c in classes if c.dept_id == req.department_id]
+        target_class_ids = [c.id for c in target_classes]
+        
+        # Existing entries for OTHER departments become hard constraints
+        existing_entries = [
+            entry_to_dict(e) for e in existing_entries_raw 
+            if e.class_id not in target_class_ids
+        ]
+        classes_to_generate = target_classes
+    else:
+        # Global regenerate: no external constraints, all classes targeted
+        existing_entries = []
+        classes_to_generate = classes
 
-    if not classes or not teachers or not subjects or not rooms or not time_slots:
+    if not classes_to_generate or not teachers or not subjects or not rooms or not time_slots:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -113,7 +137,14 @@ def generate_timetable(
 
     # Convert to plain dicts for the engine
     classes_data = [
-        {"id": c.id, "name": c.name, "dept_id": c.dept_id} for c in classes
+        {
+            "id": c.id, 
+            "name": c.name, 
+            "dept_id": c.dept_id,
+            "dept_code": c.department.code if c.department else "AI",
+            "semester": c.semester,
+            "section_code": c.section_code or "",
+        } for c in classes_to_generate
     ]
     batches_data = [
         {"id": b.id, "name": b.name, "class_id": b.class_id} for b in batches
@@ -131,13 +162,28 @@ def generate_timetable(
         for t in teachers
     ]
     subjects_data = [
-        {"id": s.id, "name": s.name, "dept_id": s.dept_id, "type": s.type, "weekly_load": s.weekly_load}
+        {
+            "id": s.id, "name": s.name, "dept_id": s.dept_id,
+            "type": s.type, "weekly_load": s.weekly_load,
+            "semester": s.semester,
+        }
         for s in subjects
     ]
     rooms_data = [{"id": r.id, "name": r.name, "type": r.type} for r in rooms]
     slots_data = [
         {"id": ts.id, "label": ts.label, "slot_index": ts.slot_index}
         for ts in time_slots
+    ]
+
+    assignments_data = [
+        {
+            "class_id": a.class_id,
+            "subject_id": a.subject_id,
+            "teacher_id": a.teacher_id,
+            "batch_id": a.batch_id,
+            "type": a.type,
+            "weekly_load": a.weekly_load
+        } for a in assignments
     ]
 
     config = {
@@ -148,6 +194,16 @@ def generate_timetable(
     }
 
     engine = TimetableEngine(config)
+    import os, json
+    if os.getenv("DEBUG_ENGINE", "").lower() in ("1", "true", "yes"):
+        with open("engine_input_debug.json", "w") as f:
+            json.dump({
+                "classes": classes_data,
+                "teachers": teachers_data,
+                "subjects": subjects_data,
+                "rooms": rooms_data,
+                "slots": slots_data
+            }, f, indent=2)
     result = engine.generate(
         classes=classes_data, 
         batches=batches_data,
@@ -155,10 +211,26 @@ def generate_timetable(
         subjects=subjects_data,
         rooms=rooms_data, 
         time_slots=slots_data, 
+        teaching_assignments=assignments_data,
         semester_year=req.semester_year,
         target_dept_id=req.department_id,
         existing_entries=existing_entries
     )
+    print(f"DEBUG: ENGINE RESULT: Success={result.success}, Slots={len(result.slots)}")
+
+    # Clear existing engine-generated notices
+    db.query(Notice).filter(Notice.target_role == "admin", Notice.title.like("AI Engine:%")).delete()
+
+    # Clear existing timetable entries for the target semester and classes
+    # If a department is specified, clear all classes in that department.
+    # Otherwise, clear all classes (full regenerate).
+    clear_query = db.query(TimetableEntry).filter(TimetableEntry.semester_year == req.semester_year)
+    if req.department_id:
+        # Filter for classes in this department
+        target_class_ids = [c.id for c in classes if c.dept_id == req.department_id]
+        clear_query = clear_query.filter(TimetableEntry.class_id.in_(target_class_ids))
+    
+    clear_query.delete(synchronize_session=False)
 
     # Persist to DB
     for slot in result.slots:
@@ -171,9 +243,22 @@ def generate_timetable(
             day=slot.day,
             time_slot_id=slot.time_slot_id,
             is_substituted=False,
+            subject_shortcode=slot.subject_shortcode,
+            faculty_initials=slot.faculty_initials,
+            dept_code=slot.dept_code,
+            section_code=slot.section_code,
             semester_year=req.semester_year,
         )
         db.add(entry)
+
+    # Persist Notices
+    for n in result.notice_board.get("notices", []):
+        db_notice = Notice(
+            title=f"AI Engine: {n['category']}",
+            content=n["message"],
+            target_role="admin"
+        )
+        db.add(db_notice)
 
     db.commit()
 
@@ -184,6 +269,7 @@ def generate_timetable(
         "conflicts_detected": result.conflicts_detected,
         "conflicts_resolved": result.conflicts_resolved,
         "logs": result.logs[-30:],
+        "notice_board": result.notice_board
     }
 
 
@@ -278,8 +364,22 @@ def create_manual_entry(
     if existing:
         raise HTTPException(status_code=400, detail="This class/batch already has a session in this slot.")
 
-    # 3. Create
-    entry = TimetableEntry(**req.dict())
+    # 3. Enrich with metadata if missing
+    subject = db.query(Subject).filter(Subject.id == req.subject_id).first()
+    teacher = db.query(Teacher).filter(Teacher.id == req.teacher_id).first()
+    cls = db.query(Class).filter(Class.id == req.class_id).first()
+    
+    entry_data = req.dict()
+    if subject:
+        entry_data["subject_shortcode"] = get_shortcode(subject.name)
+    if teacher:
+        entry_data["faculty_initials"] = get_initials(teacher.name)
+    if cls:
+        entry_data["dept_code"] = cls.department.code if cls.department else "AI"
+        entry_data["section_code"] = cls.section_code or ""
+
+    # 4. Create
+    entry = TimetableEntry(**entry_data)
     db.add(entry)
     db.commit()
     db.refresh(entry)
@@ -300,10 +400,12 @@ def edit_timetable_entry(
 
     teacher_id = req.teacher_id or entry.teacher_id
     room_id = req.room_id or entry.room_id
+    day = req.day or entry.day
+    time_slot_id = req.time_slot_id or entry.time_slot_id
 
     # Conflict Validation
     error = check_timetable_conflict(
-        db, entry.day, entry.time_slot_id, entry.semester_year,
+        db, day, time_slot_id, entry.semester_year,
         teacher_id=teacher_id, room_id=room_id, exclude_id=entry_id
     )
     if error:
@@ -311,10 +413,20 @@ def edit_timetable_entry(
 
     if req.teacher_id:
         entry.teacher_id = req.teacher_id
+        teacher = db.query(Teacher).filter(Teacher.id == req.teacher_id).first()
+        if teacher:
+            entry.faculty_initials = get_initials(teacher.name)
     if req.subject_id:
         entry.subject_id = req.subject_id
+        subject = db.query(Subject).filter(Subject.id == req.subject_id).first()
+        if subject:
+            entry.subject_shortcode = get_shortcode(subject.name)
     if req.room_id:
         entry.room_id = req.room_id
+    if req.day:
+        entry.day = req.day
+    if req.time_slot_id:
+        entry.time_slot_id = req.time_slot_id
 
     db.commit()
     db.refresh(entry)
@@ -367,7 +479,7 @@ def reschedule(
 
     engine = ReschedulingEngine()
     updated_entries, changes = engine.reschedule(
-        absent_ids, entries_data, teachers_data, subjects_map
+        absent_ids, entries_data, teachers_data, subjects_map, target_day=req.day
     )
 
     # Persist substitutions to DB
@@ -399,7 +511,6 @@ def reschedule(
     }
 
 
-# ── Helper endpoints ──────────────────────────────────────────────────────────
 @router.get("/classes")
 def get_classes(db: Session = Depends(get_db), _=Depends(get_current_user)):
     classes = db.query(Class).all()
@@ -419,3 +530,88 @@ def timetable_status(db: Session = Depends(get_db), _=Depends(get_current_user))
     """Check if timetable has been generated."""
     count = db.query(TimetableEntry).count()
     return {"total_entries": count, "generated": count > 0}
+
+@router.get("/export/pdf/{class_name}")
+async def export_pdf(class_name: str, db: Session = Depends(get_db)):
+    target_class = db.query(Class).filter(Class.name == class_name).first()
+    if not target_class: raise HTTPException(status_code=404, detail="Class not found")
+    slots = db.query(TimeSlot).order_by(TimeSlot.slot_index).all()
+    slots_data = [{"label": s.label, "slot_index": s.slot_index} for s in slots]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    schedule_data = {}
+    for day in days:
+        day_slots = []
+        for slot in slots:
+            if slot.label == "12:30 - 01:30":
+                day_slots.append({"is_recess": True})
+                continue
+            entry = db.query(TimetableEntry).filter(
+                TimetableEntry.class_id == target_class.id,
+                TimetableEntry.day == day,
+                TimetableEntry.time_slot_id == slot.id
+            ).first()
+            if entry:
+                day_slots.append({"subject": entry.subject.name, "teacher": entry.teacher.name, "room": entry.room.name})
+            else:
+                day_slots.append({"subject": None})
+        schedule_data[day] = day_slots
+    pdf_content = ReportingService.generate_pdf(class_name, slots_data, schedule_data)
+    return Response(content=pdf_content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=Timetable_{class_name}.pdf"})
+
+@router.get("/export/excel/{class_name}")
+async def export_excel(class_name: str, db: Session = Depends(get_db)):
+    target_class = db.query(Class).filter(Class.name == class_name).first()
+    if not target_class: raise HTTPException(status_code=404, detail="Class not found")
+    slots = db.query(TimeSlot).order_by(TimeSlot.slot_index).all()
+    slots_data = [{"label": s.label, "slot_index": s.slot_index} for s in slots]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    schedule_data = {}
+    for day in days:
+        day_slots = []
+        for slot in slots:
+            if slot.label == "12:30 - 01:30":
+                day_slots.append({"is_recess": True})
+                continue
+            entry = db.query(TimetableEntry).filter(TimetableEntry.class_id == target_class.id, TimetableEntry.day == day, TimetableEntry.time_slot_id == slot.id).first()
+            if entry:
+                day_slots.append({"subject": entry.subject.name, "teacher": entry.teacher.name, "room": entry.room.name})
+            else:
+                day_slots.append({"subject": None})
+        schedule_data[day] = day_slots
+    excel_content = ReportingService.generate_excel(class_name, slots_data, schedule_data)
+    return Response(content=excel_content, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=Timetable_{class_name}.xlsx"})
+
+@router.get("/affected")
+def get_affected_entries(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Get timetable entries for teachers who are currently marked absent."""
+    # ... logic remains same ...
+    """Get timetable entries for teachers who are currently marked absent."""
+    # Get absent teachers
+    absent_ids = [t.id for t in db.query(Teacher).filter(Teacher.status == "absent").all()]
+    if not absent_ids: return []
+    
+    # Get current day (Monday, etc.)
+    import datetime
+    day_name = datetime.date.today().strftime("%A")
+    # For dev purposes, if it's weekend, just show Monday for testing
+    if day_name in ["Saturday", "Sunday"]: day_name = "Monday"
+    
+    # Get entries for these teachers for today
+    entries = db.query(TimetableEntry).filter(
+        TimetableEntry.teacher_id.in_(absent_ids),
+        TimetableEntry.day == day_name
+    ).all()
+    
+    return [
+        {
+            "id": e.id,
+            "day": e.day,
+            "slot_id": e.time_slot_id,
+            "slot_label": e.time_slot.label if e.time_slot else "N/A",
+            "class_name": e.class_.name if e.class_ else "N/A",
+            "subject_id": e.subject_id,
+            "subject_name": e.subject.name if e.subject else "N/A",
+            "teacher_name": e.teacher.name if e.teacher else "N/A",
+        }
+        for e in entries
+    ]

@@ -7,12 +7,10 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
-from passlib.context import CryptContext
 from sqlalchemy import create_engine, text
+from app.core.security import hash_password
 
 PROD_DB_URL = "postgresql://neondb_owner:npg_WN0IRfyjAmY5@ep-summer-voice-am361anj-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ADMIN_EMAIL = "admin@ghrce.edu"
 ADMIN_PASS  = "admin123"
@@ -23,7 +21,7 @@ with engine.begin() as conn:
     # Check if admin exists
     existing = conn.execute(text("SELECT id, email FROM users WHERE email = :email"), {"email": ADMIN_EMAIL}).fetchone()
     
-    hashed = pwd_context.hash(ADMIN_PASS)
+    hashed = hash_password(ADMIN_PASS)
     
     if existing:
         # Update the password hash

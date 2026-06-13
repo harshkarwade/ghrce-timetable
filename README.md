@@ -1,157 +1,305 @@
-# 🎓 GHRCE AI Master Timetable & College Management System
+# 🎓 GHRCE AI Master Timetable System — Full Stack
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
-![React](https://img.shields.io/badge/react-18-cyan.svg)
-
-An enterprise-grade, AI-powered academic scheduling and management platform designed specifically for **G.H. Raisoni College of Engineering (GHRCE)**. This full-stack solution automates complex timetable generation, manages faculty workload, and facilitates real-time administrative workflows.
+**GH Raisoni College of Engineering**  
+AI-powered timetable generator with real-time rescheduling, admin & teacher portals.
 
 ---
 
-## ✨ Key Features
+## 📁 Project Structure
 
-### 🤖 AI-Driven Scheduling
-*   **Constraint Satisfaction Engine:** Uses CSP & Backtracking to generate conflict-free schedules based on teacher availability, room capacity, and subject requirements.
-*   **Dynamic Rescheduling:** Instantly find substitutes for absent teachers while maintaining departmental workload balance.
-*   **Load Balancing:** Automatically distributes teaching hours to prevent faculty burnout.
-
-### 🏢 Multi-Role Portals
-*   **Admin Dashboard:** Full control over departments, faculty, subjects, and rooms. Manage leave requests and bulk data operations.
-*   **Teacher Portal:** Personal weekly schedule, daily workload analytics, attendance tracking, and leave request submission.
-
-### 📊 Advanced Analytics
-*   **Real-time Insights:** Visualized data for faculty workload distribution and room utilization.
-*   **Attendance Trends:** Track teacher attendance patterns over time.
-
----
-
-## 🏗️ Architecture & Tech Stack
-
-### Backend (FastAPI)
-*   **Framework:** FastAPI (Python) for high-performance asynchronous API endpoints.
-*   **Database:** PostgreSQL with SQLAlchemy 2.0 ORM.
-*   **Authentication:** JWT-based secure sessions with Bcrypt password hashing.
-*   **Migrations:** Alembic for robust database version control.
-
-### Frontend (React)
-*   **UI/UX:** React 18 with Tailwind CSS for a modern, responsive interface.
-*   **State Management:** Zustand for lightweight and efficient global state handling.
-*   **Data Visualization:** Recharts for interactive administrative charts.
-*   **Icons:** Lucide-React for consistent, high-quality iconography.
-
----
-
-## 🚀 Quick Start Guide
-
-### Prerequisites
-*   Python 3.9+
-*   Node.js 16+
-*   PostgreSQL (Local or Cloud like Neon/Supabase)
-
-### 1. Backend Setup
-```bash
-cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate | Unix: source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # Configure your DATABASE_URL in .env
-python seed.py        # Initialize database with sample GHRCE data
-uvicorn main:app --reload
+```
+ghrce-timetable/
+├── backend/                  ← FastAPI + PostgreSQL
+│   ├── main.py               ← App entry point
+│   ├── requirements.txt
+│   ├── seed.py               ← Seed database with sample data
+│   ├── .env                  ← Database & JWT config
+│   └── app/
+│       ├── core/
+│       │   ├── config.py     ← Settings
+│       │   ├── database.py   ← SQLAlchemy engine
+│       │   └── security.py   ← JWT + bcrypt
+│       ├── models/
+│       │   └── models.py     ← All DB tables
+│       ├── schemas/
+│       │   └── schemas.py    ← Pydantic models
+│       ├── routers/
+│       │   ├── auth.py       ← Login endpoint
+│       │   ├── teachers.py   ← Teacher CRUD
+│       │   ├── subjects.py   ← Subject CRUD
+│       │   ├── rooms.py      ← Room CRUD
+│       │   ├── timetable.py  ← Generate + Reschedule
+│       │   ├── attendance.py ← Mark attendance
+│       │   └── analytics.py  ← Charts data
+│       └── services/
+│           └── ai_engine.py  ← CSP + Backtracking algorithm
+│
+└── frontend/                 ← React.js + Tailwind CSS
+    ├── package.json
+    ├── .env                  ← API URL
+    └── src/
+        ├── App.js            ← Routes
+        ├── services/api.js   ← All HTTP calls
+        ├── store/authStore.js ← Zustand auth state
+        └── pages/
+            ├── LoginPage.js
+            ├── admin/        ← Admin portal pages
+            └── teacher/      ← Teacher portal pages
 ```
 
-### 2. Frontend Setup
+---
+
+## 🛠️ Tech Stack
+
+| Layer        | Technology                          |
+|--------------|-------------------------------------|
+| Frontend     | React.js 18, Tailwind CSS, Recharts |
+| Backend      | Python FastAPI                      |
+| Database     | **PostgreSQL**                      |
+| ORM          | SQLAlchemy 2.0                      |
+| Auth         | JWT (python-jose) + bcrypt          |
+| AI Engine    | CSP + Backtracking (custom Python)  |
+| State Mgmt   | Zustand                             |
+| HTTP Client  | Axios                               |
+
+---
+
+## 🚀 HOW TO RUN — Step by Step
+
+### STEP 1 — Install PostgreSQL
+
+**Option A: Local PostgreSQL**
 ```bash
-cd frontend
+# macOS
+brew install postgresql@15
+brew services start postgresql@15
+
+# Ubuntu/Debian
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+
+# Windows — download from: https://www.postgresql.org/download/windows/
+```
+
+**Option B: Free Cloud PostgreSQL (Recommended)**
+- **Supabase** → https://supabase.com (free tier, no credit card)
+- **Neon** → https://neon.tech (free tier)
+- **Railway** → https://railway.app
+
+---
+
+### STEP 2 — Create Database
+
+```bash
+# Local PostgreSQL
+psql -U postgres
+CREATE DATABASE ghrce_timetable;
+\q
+```
+
+For Supabase/Neon: copy the connection string from their dashboard.
+
+---
+
+### STEP 3 — Setup Backend
+
+```bash
+# Navigate to backend folder
+cd ghrce-timetable/backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# macOS/Linux:
+source venv/bin/activate
+# Windows:
+venv\Scripts\activate   
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure database URL
+# Edit .env file and set your DATABASE_URL:
+# LOCAL:   postgresql://postgres:password@localhost:5432/ghrce_timetable
+# Supabase: postgresql://postgres:[password]@db.[project].supabase.co:5432/postgres
+# Neon:    postgresql://[user]:[password]@[host]/[database]?sslmode=require
+```
+
+---
+
+### STEP 4 — Seed Database
+
+```bash
+# Still inside backend/ with venv active
+python seed.py
+```
+
+You should see:
+```
+✓ 4 departments
+✓ 9 users
+✓ 16 subjects
+✓ 8 teachers
+✓ 7 rooms/labs
+✓ 5 classes
+✓ 8 time slots
+✅ Database seeded successfully!
+```
+
+---
+
+### STEP 5 — Start Backend Server
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+Backend running at: **http://localhost:8000**  
+API Docs (Swagger): **http://localhost:8000/docs**
+
+---
+
+### STEP 6 — Setup Frontend
+
+```bash
+# Open new terminal, navigate to frontend
+cd ghrce-timetable/frontend
+
+# Install dependencies
 npm install
+
+# Start development server
 npm start
 ```
 
----
-
-## 🔐 Default Access (Seeded Data)
-
-### Administrators
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **Administrator** | `admin@ghrce.edu` | `admin123` |
-
-### Faculty (Teachers)
-| Department | Teacher | Email | Password |
-| :--- | :--- | :--- | :--- |
-| **CS** | Dr. Priya Sharma | `priya@ghrce.edu` | `teacher123` |
-| **CS** | Prof. Rajesh Kumar | `rajesh@ghrce.edu` | `teacher123` |
-| **CS** | Dr. Meena Joshi | `meena@ghrce.edu` | `teacher123` |
-| **CS** | Prof. Amit Gupta | `amit@ghrce.edu` | `teacher123` |
-| **ECE** | Dr. Anita Desai | `anita@ghrce.edu` | `teacher123` |
-| **ECE** | Dr. Kavita Nair | `kavita@ghrce.edu` | `teacher123` |
-| **ME** | Prof. Suresh Patel | `suresh@ghrce.edu` | `teacher123` |
-| **CE** | Prof. Vikram Singh | `vikram@ghrce.edu` | `teacher123` |
+Frontend running at: **http://localhost:3000**
 
 ---
 
-## 🧠 How It Works: The AI & Workflow
+## 🔑 Login Credentials
 
-This project isn't just a database; it has a **"Brain"** (the AI Engine) that solves the difficult puzzle of college scheduling. Here is how it works in simple terms:
+| Role    | Email                  | Password    |
+|---------|------------------------|-------------|
+| Admin   | admin@ghrce.edu        | admin123    |
 
-### 1. The Problem: A Complex Puzzle 🧩
-Imagine you have 50 teachers, 200 subjects, and only 10 classrooms.
-*   No teacher can be in two rooms at once.
-*   No room can hold two classes at once.
-*   Teachers can only teach subjects they are qualified for.
-*   Students shouldn't have 8 hours of lectures in a single day.
-
-Doing this by hand takes weeks. Our AI does it in **2 seconds**.
-
-### 2. The Algorithm: CSP + Backtracking 🤖
-We use an approach called **Constraint Satisfaction Problem (CSP)** with **Backtracking**. 
-
-*   **CSP (The Rules):** We tell the AI all the "Rules" (Constraints). For example: *"Teacher A is absent today"* or *"Room 101 is only for Labs"*.
-*   **Backtracking (The Trial & Error):** The AI starts placing lectures into slots. If it hits a wall where it can't place a lecture without breaking a rule, it **"Backtracks"** (steps back), changes the previous choice, and tries again. 
-*   **Heuristics (Smart Guessing):** Instead of guessing randomly, the AI uses "Greedy Heuristics" to pick the most difficult subjects first, making the puzzle easier to solve as it goes.
-
-### 3. The Step-by-Step Workflow 🔄
-
-1.  **Input:** The Admin enters data (Teachers, Subjects, Rooms) via the **React Frontend**.
-2.  **Request:** The Frontend sends this data to the **FastAPI Backend**.
-3.  **Processing:** The Backend calls the **AI Engine**.
-4.  **Generation:** The Engine runs the CSP algorithm, checking millions of combinations instantly until it finds a "Perfect" conflict-free schedule.
-5.  **Storage:** The result is saved in the **PostgreSQL Database**.
-6.  **Real-time Update:** If a teacher marks themselves "Absent," the **Rescheduling Engine** kicks in. it looks at the current "state" of the world and finds the best available substitute in the same department who isn't already busy.
-
-### 4. Why this matters? 🚀
-By integrating AI directly into the workflow, the college moves from **Static Planning** (paper timetables that break when a teacher is sick) to **Dynamic Management** (a living system that heals itself when changes happen).
+| Teacher | priya@ghrce.edu        | teacher123  |
+| Teacher | rajesh@ghrce.edu       | teacher123  |
+| Teacher | meena@ghrce.edu        | teacher123  |
 
 ---
 
+## 📋 Using the System
+
+### Generate Timetable (First Time)
+1. Login as Admin → `admin@ghrce.edu / admin123`
+2. Go to **Generate AI Timetable**
+3. Configure constraints (or use defaults)
+4. Click **⚡ Generate Optimized Timetable**
+5. Wait for AI engine to complete (~2 seconds)
+6. View results in **Master Timetable**, **Teacher Timetables**, **Room Timetables**
+
+### Mark Attendance & Auto-Reschedule
+1. Go to **Attendance & Reschedule**
+2. Mark teachers as Present/Absent
+3. If any are absent → click **🔄 Auto-Reschedule Timetable**
+4. System finds substitutes and updates timetable instantly
+5. View rescheduling log below
+
+### Teacher Portal
+1. Login as Teacher → `priya@ghrce.edu / teacher123`
+2. View **My Dashboard** (today's schedule)
+3. View **My Timetable** (full week grid)
+4. Mark **My Attendance**
+5. View **My Workload** (charts + subject list)
+
+---
+
+## 🤖 AI Engine
+
+**Algorithm: Constraint Satisfaction Problem (CSP) with Backtracking**
+
+Constraints enforced:
+- ✅ No teacher double-booking
+- ✅ No room double-booking  
+- ✅ No class double-booking
+- ✅ Max lectures per teacher per day
+- ✅ Teacher subject qualification check
+- ✅ Load balancing across teachers
+- ✅ Lab afternoon scheduling (optional)
+
+**Reschedule Algorithm:**
+1. Detects absent teachers from attendance records
+2. Scans timetable for their lectures
+3. Finds substitute: same dept + same subject → same dept → any available
+4. Checks substitute is not double-booked at that time
+5. Updates timetable entries in DB
+6. Logs all substitutions
+
+---
+
+## 🗄️ Database Schema
+
+**Tables:** users, departments, teachers, teacher_subjects, subjects, rooms, classes, time_slots, timetable_entries, attendance, substitute_assignments
+
+**Key relationships:**
+- Teacher → Department (many-to-one)
+- Teacher ↔ Subject (many-to-many via teacher_subjects)
+- TimetableEntry → Class, Subject, Teacher, Room, TimeSlot
+- Attendance → Teacher
+- SubstituteAssignment → TimetableEntry, Teacher (x2)
+
+---
+
+## 🌐 API Endpoints
+
+| Method | Endpoint                      | Description           |
+|--------|-------------------------------|-----------------------|
+| POST   | /api/auth/login               | Login                 |
+| GET    | /api/teachers/                | List teachers         |
+| POST   | /api/teachers/                | Create teacher        |
+| POST   | /api/timetable/generate       | AI generate timetable |
+| GET    | /api/timetable/               | Get timetable entries |
+| POST   | /api/timetable/reschedule     | Auto-reschedule       |
+| POST   | /api/attendance/              | Mark attendance       |
+| GET    | /api/analytics/workload       | Workload data         |
+| GET    | /api/analytics/summary        | Dashboard summary     |
+
+Full docs: http://localhost:8000/docs
+
+---
+
+## ☁️ Free Deployment
+
+**Backend → Railway**
 ```bash
-ghrce-timetable/
-├── backend/                  # FastAPI Application
-│   ├── app/
-│   │   ├── core/            # Security & DB Config
-│   │   ├── models/          # SQLAlchemy Entities
-│   │   ├── routers/         # API Route Handlers
-│   │   ├── schemas/         # Pydantic Pydantic Models
-│   │   └── services/        # AI Engine logic
-│   └── seed.py               # Database initialization
-├── frontend/                 # React Application
-│   ├── src/
-│   │   ├── components/      # Shared UI Elements
-│   │   ├── pages/           # Portal-specific Views
-│   │   ├── services/        # API Integration
-│   │   └── store/           # Zustand Stores
-└── render.yaml               # Cloud Infrastructure Config
+# Install Railway CLI
+npm install -g railway
+railway login
+cd backend
+railway init
+railway up
 ```
 
+**Frontend → Vercel**
+```bash
+npm install -g vercel
+cd frontend
+vercel
+# Set REACT_APP_API_URL to your Railway backend URL
+```
+
+**Database → Supabase (free)**
+1. Create project at supabase.com
+2. Copy connection string to backend .env
+3. Run: `python seed.py`
+
 ---
 
-## 🛡️ License
+## 📞 Support
 
-Distributed under the MIT License. See `LICENSE` for more information.
-
-## 📞 Contact & Support
-
-For technical support or feature requests, contact the development team at `dev@ghrce.edu`.
-
----
-*Created for the G.H. Raisoni College of Engineering Academic Excellence Program.*
+For issues, check:
+1. Backend running: http://localhost:8000/health
+2. DB connected: check `python seed.py` output
+3. CORS: ensure frontend URL is in `allow_origins` in main.py
+4. Token expired: logout and login again

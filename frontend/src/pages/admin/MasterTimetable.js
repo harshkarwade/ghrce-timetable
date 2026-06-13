@@ -1,18 +1,65 @@
 import { useEffect, useRef, useState } from "react";
-import { getTimetable, getClasses, getTimeSlots } from "../../services/api";
+import { useNavigate } from "react-router-dom";
+import { getTimetable, getClasses, getTimeSlots, exportPDF, exportExcel, updateTimetableEntry } from "../../services/api";
 import toast from "react-hot-toast";
 import ManualAssignmentModal from "../../components/admin/ManualAssignmentModal";
 import useAuthStore from "../../store/authStore";
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
+import { restrictToFirstScrollableAncestor } from "@dnd-kit/modifiers";
 
 /* ───────────────────────────────────────────────────────
    RECESS_LABEL  = the time-slot label that is always RECESS
-   RECESS_INDEX  = 0-based position of that slot (slot 4 from the printed timetable)
+   (match the exact label stored in the DB time_slots table)
 ──────────────────────────────────────────────────────── */
-const RECESS_LABEL = "12:30 - 01:30";
-const DAYS         = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const WORK_DAYS    = ["Monday", "Tuesday", "Wednesday", "Thursday"]; // Friday is PROJECT
+const RECESS_LABEL = "12:30 PM-01:30 PM";
+const DAYS         = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]; 
+const DAYS_ABBR    = {
+  "Monday": "MON",
+  "Tuesday": "TUE",
+  "Wednesday": "WED",
+  "Thursday": "THU",
+  "Friday": "FRI"
+};
+
+// ── DnD Components ──────────────────────────────────────────────────────────
+function DraggableEntry({ entry, children }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `entry-${entry.id}`,
+    data: { entry }
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+    opacity: isDragging ? 0.5 : 1,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="h-full">
+      {children}
+    </div>
+  );
+}
+
+function DroppableCell({ day, slot, children, onSlotClick }) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `cell-${day}-${slot.id}`,
+    data: { day, slot }
+  });
+
+  return (
+    <td
+      ref={setNodeRef}
+      className={`p-1.5 border-b border-[var(--border-subtle)] align-top min-w-[150px] transition-all relative ${isOver ? 'bg-indigo-500/20' : ''}`}
+      onClick={() => onSlotClick(day, slot)}
+    >
+      {children}
+    </td>
+  );
+}
 
 export default function MasterTimetable() {
+  const navigate = useNavigate();
   const { role } = useAuthStore();
   const [semester, setSemester]   = useState("2024-25");
   const [classes,  setClasses]    = useState([]);
@@ -25,6 +72,7 @@ export default function MasterTimetable() {
   const [isModalOpen,   setIsModalOpen]   = useState(false);
   const [selectedSlot,  setSelectedSlot]  = useState(null);
   const [editingEntry,  setEditingEntry]  = useState(null);
+  const [compactView,   setCompactView]   = useState(true);
 
   const printRef = useRef();
 
@@ -82,52 +130,71 @@ export default function MasterTimetable() {
   // ── Print / Download PDF handler ────────────────────────────────────────────
   const handlePrint = () => { window.print(); };
 
-  // ── Excel Export Handler (CSV) ──────────────────────────────────────────────
-  const handleExportExcel = () => {
-    if (!entries.length || !timeSlots.length) return;
+  // ── Drag & Drop Handler ─────────────────────────────────────────────────────
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over) return;
 
-    const headers = ["Day / Time", ...timeSlots.map(s => s.label)];
-    const rows = DAYS.map(day => {
-      const row = [day];
-      timeSlots.forEach(slot => {
-        if (slot.label === RECESS_LABEL) {
-          row.push("RECESS");
-          return;
-        }
-        if (day === "Friday") {
-          row.push("PROJECT DAY");
-          return;
-        }
-        const cellEntries = grid[day]?.[slot.label] || [];
-        const cellText = cellEntries.map(e => 
-          `${e.subject_name} (${e.teacher_name})${e.batch_name ? ' [' + e.batch_name.split(' - ').pop() + ']' : ''}`
-        ).join(" | ");
-        row.push(cellText || "-");
-      });
-      return row;
+    const entry = active.data.current.entry;
+    const { day: newDay, slot: newSlot } = over.data.current;
+
+    if (entry.day === newDay && entry.time_slot_id === newSlot.id) return;
+
+    const loadingToast = toast.loading(`Moving ${entry.subject_name}...`);
+    
+    updateTimetableEntry(entry.id, {
+      day: newDay,
+      time_slot_id: newSlot.id
+    })
+    .then(() => {
+      toast.success("Rescheduled successfully!", { id: loadingToast });
+      loadTimetable();
+    })
+    .catch((err) => {
+      const msg = err.response?.data?.detail || "Conflict detected or move failed";
+      toast.error(msg, { id: loadingToast });
     });
+  };
 
-    const csvContent = [headers, ...rows]
-      .map(r => r.map(cell => `"${(cell || "").toString().replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+  // ── Professional Export Handlers ───────────────────────────────────────────
+  const handleExportPDF = () => {
+    if (!selected) return;
+    const loadingToast = toast.loading("Generating professional PDF...");
+    exportPDF(selected.name)
+      .then((res) => {
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Timetable_${selected.name}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        toast.success("PDF exported successfully!", { id: loadingToast });
+      })
+      .catch(() => toast.error("PDF export failed", { id: loadingToast }));
+  };
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Timetable_${selected?.name || 'Class'}_${semester}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Excel (CSV) exported successfully!");
+  const handleExportExcel = () => {
+    if (!selected) return;
+    const loadingToast = toast.loading("Generating professional Excel...");
+    exportExcel(selected.name)
+      .then((res) => {
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Timetable_${selected.name}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        toast.success("Excel exported successfully!", { id: loadingToast });
+      })
+      .catch(() => toast.error("Excel export failed", { id: loadingToast }));
   };
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  const visibleDays = DAYS; // show all, but Friday will show PROJECT
+  const visibleDays = DAYS;
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="space-y-8 animate-fade-in">
       {/* ── Print-only CSS ── */}
       <style>{`
         @media print {
@@ -196,22 +263,41 @@ export default function MasterTimetable() {
           </div>
 
           {/* ── Download / Print buttons ── */}
-          {entries.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-95"
-              >
-                <span>📊</span> Export Excel
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200 active:scale-95"
-              >
-                <span>🖨️</span> Print / Export
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCompactView(!compactView)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                compactView ? 'bg-indigo-600/10 border-indigo-500/30 text-indigo-400' : 'bg-[var(--bg-main)] border-[var(--border-subtle)] text-[var(--text-muted)]'
+              }`}
+            >
+              <span>{compactView ? '🔳' : '⬜'}</span> Compact View
+            </button>
+            
+            <div className="h-10 w-[1px] bg-[var(--border-subtle)] mx-2" />
+
+            {entries.length > 0 && (
+              <>
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+                >
+                  <span>📊</span> Excel
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-rose-500/20 transition-all duration-200 active:scale-95"
+                >
+                  <span>📄</span> PDF
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200 active:scale-95"
+                >
+                  <span>🖨️</span> Print / Export
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -259,89 +345,99 @@ export default function MasterTimetable() {
                   <th className="p-4 bg-[var(--bg-sidebar)] border-b border-r border-[var(--border-subtle)] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] w-32">
                     Day / Interval
                   </th>
-                  {timeSlots.map((slot) => (
-                    <th key={slot.id} className={`p-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-subtle)] text-center transition-colors ${slot.label === RECESS_LABEL ? "bg-amber-500/5 text-amber-600" : ""}`}>
-                      <div className="text-[11px] font-extrabold tracking-tight whitespace-pre-line leading-tight">
-                        {slot.label.replace(' - ', '\n–\n')}
-                      </div>
-                    </th>
+                  {timeSlots.map((slot, slotIdx) => (
+                    <>
+                      {slotIdx === 3 && (
+                        <th key="recess-header" className="p-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-subtle)] text-center bg-amber-500/5 text-amber-600 w-16">
+                          <div className="text-[11px] font-extrabold tracking-tight whitespace-pre-line leading-tight">12:30 PM{"\n"}–{"\n"}01:30 PM</div>
+                        </th>
+                      )}
+                      <th key={slot.id} className="p-4 bg-[var(--bg-sidebar)] border-b border-[var(--border-subtle)] text-center">
+                        <div className="text-[11px] font-extrabold tracking-tight whitespace-pre-line leading-tight">
+                          {slot.label.replace(' - ', '\n–\n')}
+                        </div>
+                      </th>
+                    </>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {visibleDays.map((day) => {
-                  const isFriday = day === "Friday";
                   return (
-                    <tr key={day} className={`group/row transition-colors ${isFriday ? "bg-indigo-50/30 dark:bg-indigo-500/5" : "hover:bg-[var(--bg-sidebar)]/50"}`}>
+                    <tr key={day} className="group/row transition-colors hover:bg-[var(--bg-sidebar)]/50">
                       <td className="p-4 bg-[var(--bg-sidebar)] border-b border-r border-[var(--border-subtle)] text-center">
                         <span className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">{day}</span>
                       </td>
 
-                      {isFriday ? (
-                        <td colSpan={timeSlots.length} className="p-6 text-center border-b border-[var(--border-subtle)] print-project">
-                          <div className="flex items-center justify-center gap-6">
-                            <div className="h-[1px] flex-1 bg-indigo-500/20" />
-                            <span className="px-10 py-3 bg-indigo-600/10 border-2 border-indigo-500/20 rounded-2xl text-indigo-600 dark:text-indigo-400 font-black text-sm tracking-[0.4em] uppercase project-text">
-                              🚀 Project Day
-                            </span>
-                            <div className="h-[1px] flex-1 bg-indigo-500/20" />
-                          </div>
-                        </td>
-                      ) : (
-                        timeSlots.map((slot) => {
-                          const isRecess = slot.label === RECESS_LABEL;
+                      {timeSlots.map((slot, slotIdx) => {
                           const slotEntries = grid[day]?.[slot.label] || [];
 
-                          if (isRecess) {
-                            return (
-                              <td key={slot.id} className="p-0 border-b border-[var(--border-subtle)] print-recess">
+                          return [
+                            // Inject RECESS column between slot idx 2 and 3
+                            slotIdx === 3 && (
+                              <td key="recess" className="p-0 border-b border-[var(--border-subtle)] print-recess">
                                 <div className="flex items-center justify-center h-full min-h-[80px] bg-amber-500/5 border-x border-amber-500/10">
-                                  <span className="text-[10px] font-black text-amber-600/60 uppercase tracking-[0.2em] transform -rotate-0 md:-rotate-90 recess-text">RECESS</span>
+                                  <span className="text-[10px] font-black text-amber-600/60 uppercase tracking-[0.2em] recess-text">RECESS</span>
                                 </div>
                               </td>
-                            );
-                          }
+                            ),
 
-                          return (
-                            <td
+                            <DroppableCell
                               key={slot.id}
-                              className={`p-1.5 border-b border-[var(--border-subtle)] align-top min-w-[150px] transition-all ${role === 'admin' ? 'cursor-pointer hover:bg-indigo-500/5' : ''}`}
-                              onClick={() => handleSlotClick(day, slot)}
+                              day={day}
+                              slot={slot}
+                              onSlotClick={handleSlotClick}
                             >
                               <div className="flex flex-col gap-2 h-full min-h-[80px]">
                                 {slotEntries.length > 0 ? (
                                   slotEntries.map((e, idx) => {
                                     const isLab = e.subject_type === 'lab';
                                     return (
-                                      <div
-                                        key={idx}
-                                        onClick={(ev) => handleEntryEdit(ev, e)}
-                                        className={`entry-card rounded-2xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.03] hover:shadow-lg flex-1 group/entry ${
-                                          isLab
-                                            ? 'bg-amber-500/10 border-amber-500/20 hover:border-amber-500/50'
-                                            : 'bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/50'
-                                        }`}
-                                      >
-                                        {e.batch_name && (
-                                          <div className="absolute top-2 right-2 bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border-subtle)] text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm z-10 uppercase tracking-tighter">
-                                            {e.batch_name.split(' - ').pop()}
+                                      <DraggableEntry key={idx} entry={e}>
+                                          <div
+                                            onClick={(ev) => handleEntryEdit(ev, e)}
+                                            className={`entry-card rounded-2xl p-3 border shadow-sm relative flex flex-col justify-between transition-all duration-300 hover:scale-[1.03] hover:shadow-lg flex-1 group/entry cursor-grab active:cursor-grabbing ${
+                                              isLab
+                                                ? 'bg-amber-500/10 border-amber-500/20 hover:border-amber-500/50 shadow-amber-500/5'
+                                                : 'bg-indigo-500/10 border-indigo-500/20 hover:border-indigo-500/50 shadow-indigo-500/5'
+                                            } ${e.is_substituted ? 'border-dashed border-rose-500/40 bg-rose-500/5' : ''}`}
+                                          >
+                                            <div className="flex justify-between items-start gap-1 mb-1">
+                                              <div className={`entry-title font-black leading-tight ${compactView ? 'text-[10px]' : 'text-[12px]'} ${isLab ? 'text-amber-700 dark:text-amber-300' : 'text-indigo-700 dark:text-indigo-300'}`} title={e.subject_name}>
+                                                {compactView ? (e.subject_shortcode || e.subject_name) : e.subject_name}
+                                              </div>
+                                              
+                                              <div className="flex flex-col items-end gap-1">
+                                                {e.batch_name && (
+                                                  <div className="bg-[var(--bg-main)] text-[var(--text-main)] border border-[var(--border-subtle)] text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-sm uppercase tracking-tighter">
+                                                    {e.batch_name.split(' - ').pop()}
+                                                  </div>
+                                                )}
+                                                {e.is_substituted && (
+                                                  <div className="bg-rose-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-sm shadow-rose-500/20 uppercase tracking-tighter animate-pulse" title={`Substituted for ${e.original_teacher_name}`}>
+                                                    SUB
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            <div className="entry-sub text-[10px] text-[var(--text-muted)] font-bold truncate mb-2" title={e.teacher_name}>
+                                              {compactView ? (e.faculty_initials || e.teacher_name) : e.teacher_name}
+                                            </div>
+
+                                            <div className="flex items-center justify-between mt-auto pt-2 border-t border-black/5 dark:border-white/5">
+                                              <div className="entry-room text-[9px] font-black text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-md">
+                                                {e.room_name}
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                {role === "admin" && (
+                                                  <span className="opacity-0 group-hover/entry:opacity-100 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-tighter transition-opacity">Edit</span>
+                                                )}
+                                                {e.subject_type === 'lab' && <span className="text-[10px]">🧪</span>}
+                                              </div>
+                                            </div>
                                           </div>
-                                        )}
-                                        <div className={`entry-title text-[11px] font-black leading-none mb-1 ${isLab ? 'text-amber-700 dark:text-amber-300' : 'text-indigo-700 dark:text-indigo-300'}`}>
-                                          {e.subject_name}
-                                        </div>
-                                        <div className="entry-sub text-[10px] text-[var(--text-muted)] font-bold truncate">
-                                          {e.teacher_name}
-                                        </div>
-                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                          <div className="entry-room text-[9px] font-black text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-md">
-                                            {e.room_name}
-                                          </div>
-                                          {role === "admin" && (
-                                              <span className="opacity-0 group-hover/entry:opacity-100 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-tighter transition-opacity">Edit</span>
-                                            )}
-                                        </div>
-                                      </div>
+                                      </DraggableEntry>
                                     );
                                   })
                                 ) : (
@@ -352,10 +448,10 @@ export default function MasterTimetable() {
                                     )
                                 )}
                               </div>
-                            </td>
-                          );
+                            </DroppableCell>,
+                          ];
                         })
-                      )}
+                      }
                     </tr>
                   );
                 })}
@@ -379,10 +475,6 @@ export default function MasterTimetable() {
           <div className="w-4 h-4 rounded-lg bg-amber-500/5 border-2 border-amber-500/10" />
           <span className="text-xs font-bold text-[var(--text-main)]">Recess Break</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 rounded-lg bg-indigo-500/5 border-2 border-indigo-500/10" />
-          <span className="text-xs font-bold text-[var(--text-main)]">Project Day</span>
-        </div>
         <div className="ml-auto text-xs font-black text-[var(--text-muted)] bg-[var(--bg-sidebar)] px-4 py-2 rounded-xl border border-[var(--border-subtle)]">
           {entries.length} SESSIONS ACTIVE
         </div>
@@ -398,5 +490,6 @@ export default function MasterTimetable() {
         />
       )}
     </div>
+    </DndContext>
   );
 }

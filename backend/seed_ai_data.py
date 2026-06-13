@@ -3,126 +3,92 @@ import os
 import traceback
 
 # Set up paths
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+backend_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(backend_root)
 
 from dotenv import load_dotenv
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+env_path = os.path.join(backend_root, ".env")
 load_dotenv(env_path)
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, engine
 from app.models.models import (
-    Department, Teacher, Subject, Class, Batch, TimetableEntry
+    Department, Teacher, Subject, Class, Batch, TimetableEntry, Room, TeacherPreference, Base, teacher_subjects, TimeSlot, TeachingAssignment, User
 )
+from app.core.security import hash_password
 
 def seed():
+    print("Recreating database schema...")
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        print("Resetting and Seeding Detailed AI Department Data...")
-
-        # 0. Identify AI Department
-        ai_dept = db.query(Department).filter(Department.code == "AI").first()
-        if not ai_dept:
-            ai_dept = Department(name="Artificial Intelligence", code="AI")
-            db.add(ai_dept)
-            db.commit()
-            db.refresh(ai_dept)
-            print("- Created AI Department")
-
-        # 1. Clear Existing Data
-        class_ids = [c.id for c in db.query(Class).filter(Class.dept_id == ai_dept.id).all()]
-        if class_ids:
-            db.query(TimetableEntry).filter(TimetableEntry.class_id.in_(class_ids)).delete(synchronize_session=False)
-            db.query(Batch).filter(Batch.class_id.in_(class_ids)).delete(synchronize_session=False)
-            db.query(Class).filter(Class.dept_id == ai_dept.id).delete(synchronize_session=False)
-
-        db.query(Subject).filter(Subject.dept_id == ai_dept.id).delete(synchronize_session=False)
-        db.query(Teacher).filter(Teacher.dept_id == ai_dept.id).delete(synchronize_session=False)
-
-        db.commit()
-        print("- Cleared existing AI data")
-
-        # 2. Create Classes
-        classes_map = {}
-        for sem in [3, 5, 7]:
-            for sec in ['A', 'B']:
-                name = f"AI-Sem{sem}-{sec}"
-                cls = Class(name=name, dept_id=ai_dept.id)
-                db.add(cls)
-                db.flush()
-                classes_map[name] = cls.id
-                for b in ['B1', 'B2']:
-                    db.add(Batch(name=f"{name}-{b}", class_id=cls.id))
-
-        print(f"- {len(classes_map)} AI Classes created")
-
-        # 3. Detailed Teachers & Subjects
-        teachers_data = [
-            ("Dr. S. S. Prasad", "SSP", "Assoc. Professor", "NLP", "Exam Cell", 2, [
-                ("NLP", "Theory", 7, "A", 3), ("NLP", "Lab", 7, "A", 2)
-            ]),
-            ("Dr. S. K. Gupta", "SKG", "Professor", "ML", "Research Head", 2, [
-                ("Machine Learning", "Theory", 5, "A", 3), ("Machine Learning", "Lab", 5, "A", 2)
-            ]),
-            ("Dr. M. M. Khan", "MMK", "Assistant Professor", "CS", "Attendance", 2, [
-                ("Cryptography", "Theory", 5, "B", 3), ("Network Security", "Lab", 5, "B", 2)
-            ]),
-            ("Dr. P. S. Patil", "PSP", "Assoc. Professor", "CV", "IEEE Coord", 2, [
-                ("Computer Vision", "Theory", 7, "B", 3), ("CV Lab", "Lab", 7, "B", 2)
-            ]),
-            ("Dr. R. R. Singh", "RRS", "Professor", "AI", "Dept Library", 2, [
-                ("Artificial Intelligence", "Theory", 3, "A", 3), ("AI Lab", "Lab", 3, "A", 2)
-            ]),
-            ("Dr. V. V. Deshmukh", "VVD", "Assistant Professor", "DS", "Student Mentor", 1, [
-                ("Data Structures", "Theory", 3, "B", 3)
-            ]),
-            ("Prof. S. B. Borate", "SBB", "Assistant Professor", "SE", "Website", 1, [
-                ("Software Engineering", "Theory", 5, "A", 3)
-            ]),
-            ("Prof. N. A. Gharde", "NAG", "Assistant Professor", "OS", "Lab Incharge", 1, [
-                ("Operating Systems", "Theory", 3, "A", 3)
-            ]),
-            ("Prof. S. P. Shambharkar", "SPS", "Assistant Professor", "DBMS", "Alumni Connect", 1, [
-                ("Database Management", "Theory", 3, "B", 3)
-            ]),
-            ("Prof. R. S. Thakur", "RST", "Assistant Professor", "TOC", "Hostel Warden", 2, [
-                ("Theory of Comp", "Theory", 5, "B", 3)
-            ]),
-            ("Prof. A. P. Bagade", "APB", "Assistant Professor", "CN", "Canteen Comm", 1, [
-                ("Comp Networks", "Theory", 5, "A", 3)
-            ]),
+        # DEPARTMENTS
+        print("- Creating Departments...")
+        depts = [
+            ("Artificial Intelligence", "AI"),
+            ("Computer Science Engineering", "CSE"),
+            ("Mechanical Engineering", "MECH")
         ]
+        dept_objs = {}
+        for d_name, d_code in depts:
+            d = db.query(Department).filter(Department.code == d_code).first()
+            if not d:
+                d = Department(name=d_name, code=d_code)
+                db.add(d); db.commit(); db.refresh(d)
+            dept_objs[d_code] = d
 
-        subject_objs = {} # (name, sem, sec) -> Subject object
+        # DEFAULT ADMIN USER
+        print("- Creating Admin User...")
+        admin_user = db.query(User).filter(User.email == "admin@ghrce.edu").first()
+        if not admin_user:
+            db.add(User(
+                email="admin@ghrce.edu",
+                password_hash=hash_password("admin123"),
+                role="admin"
+            ))
 
-        for t_name, abbr, desig, spec, resp, a_load, t_subs in teachers_data:
-            teacher = Teacher(
-                name=t_name,
-                dept_id=ai_dept.id,
-                max_load=18,
-                designation=desig,
-                specialization=spec,
-                responsibilities=resp,
-                admin_load=a_load
-            )
-            db.add(teacher)
-            
-            for s_name, s_type, sem, sec, s_load in t_subs:
-                key = (s_name, s_type, sem, sec)
-                if key not in subject_objs:
-                    sub = Subject(name=s_name, type=s_type, dept_id=ai_dept.id, weekly_load=s_load)
-                    db.add(sub)
-                    db.flush()
-                    subject_objs[key] = sub
-                
-                if subject_objs[key] not in teacher.subjects:
-                    teacher.subjects.append(subject_objs[key])
+        # SAMPLE TEACHERS WITH PREFERENCES
+        print("- Creating Sample Faculty & Preferences...")
+        # Professor X (AI HOD) - Unavailable Monday Mornings
+        t1 = Teacher(name="Dr. Hemant P. (HOD-AI)", dept_id=dept_objs["AI"].id, max_load=12, avatar="HP")
+        db.add(t1); db.commit(); db.refresh(t1)
+        db.add(TeacherPreference(teacher_id=t1.id, day="Monday", preferred_slot_id=1, is_preferred=False))
+        db.add(TeacherPreference(teacher_id=t1.id, day="Monday", preferred_slot_id=2, is_preferred=False))
+
+        # SAMPLE CLASSES WITH SECTION CODES
+        print("- Creating Classes & Sections...")
+        c1 = Class(name="AI-Sem5-A", dept_id=dept_objs["AI"].id, semester=5, section_code="A")
+        c2 = Class(name="AI-Sem5-B", dept_id=dept_objs["AI"].id, semester=5, section_code="B")
+        db.add_all([c1, c2])
+
+        # INFRASTRUCTURE (Restored)
+        print("- Creating Rooms...")
+        classroom_rooms = [f"ROOM-{i}" for i in range(1, 21)]
+        lab_rooms = ["C02", "C03", "C06", "C07", "C13A", "C13B", "C08", "W21", "E17"]
+        for r_name in classroom_rooms:
+            db.add(Room(name=r_name, type="classroom", capacity=60))
+        for r_name in lab_rooms:
+            db.add(Room(name=r_name, type="lab", capacity=30))
+
+        print("- Creating TimeSlots...")
+        slots = [
+            ("09:30 AM", "10:30 AM", 0),
+            ("10:30 AM", "11:30 AM", 1),
+            ("11:30 AM", "12:30 PM", 2),
+            ("01:30 PM", "02:30 PM", 3),
+            ("02:30 PM", "03:30 PM", 4),
+            ("03:30 PM", "04:30 PM", 5),
+            ("04:30 PM", "05:30 PM", 6),
+        ]
+        for start, end, idx in slots:
+            db.add(TimeSlot(label=f"{start}-{end}", start_time=start, end_time=end, slot_index=idx))
 
         db.commit()
-        print("- Seeding complete!")
+        print("Infrastructure Seeding Complete v2.0.")
 
     except Exception as e:
         db.rollback()
-        print(f"FATAL ERROR: {str(e)}")
+        print(f"ERROR: {str(e)}")
         traceback.print_exc()
     finally:
         db.close()

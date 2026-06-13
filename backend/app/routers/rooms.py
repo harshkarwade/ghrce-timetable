@@ -28,3 +28,15 @@ def delete_room(room_id: int, db: Session = Depends(get_db), _=Depends(require_a
     db.delete(r)
     db.commit()
     return {"message": "Deleted"}
+
+@router.put("/{room_id}", response_model=RoomOut)
+def update_room(room_id: int, data: RoomCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
+    r = db.query(Room).filter(Room.id == room_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Room not found")
+    for key, value in data.dict().items():
+        setattr(r, key, value)
+    db.commit()
+    db.refresh(r)
+    return r
+

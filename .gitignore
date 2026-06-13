@@ -4,3 +4,16 @@ venv/
 .env
 node_modules/
 build/
+
+# IDE settings
+.vscode/
+
+# Temp files & logs
+*.log
+backend/*.txt
+!backend/requirements.txt
+!backend/runtime.txt
+backend/*.json
+backend/scratch/
+verify_out.txt
+~$*

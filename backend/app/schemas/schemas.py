@@ -119,6 +119,12 @@ class TimetableEntryOut(BaseModel):
     original_teacher: Optional[dict] = None
     room: Optional[RoomOut] = None
     time_slot: Optional[dict] = None
+    
+    subject_shortcode: Optional[str] = None
+    faculty_initials: Optional[str] = None
+    dept_code: Optional[str] = None
+    section_code: Optional[str] = None
+    
     semester_year: str
     class Config: from_attributes = True
 
@@ -136,6 +142,8 @@ class TimetableEntryUpdate(BaseModel):
     subject_id: Optional[int] = None
     teacher_id: Optional[int] = None
     room_id: Optional[int] = None
+    day: Optional[str] = None
+    time_slot_id: Optional[int] = None
 
 class GenerateRequest(BaseModel):
     semester_year: str = "2024-25"
@@ -161,6 +169,7 @@ class AttendanceOut(BaseModel):
 
 class RescheduleRequest(BaseModel):
     date: date
+    day: Optional[str] = None
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 class WorkloadItem(BaseModel):

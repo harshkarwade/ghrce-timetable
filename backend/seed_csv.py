@@ -36,7 +36,7 @@ def seed():
         db.query(Teacher).delete(synchronize_session=False)
         db.query(Department).delete(synchronize_session=False)
         db.commit()
-        print("✅ Cleanup Done")
+        print("Cleanup Done")
 
         departments = {}
         classes = {}
@@ -102,12 +102,10 @@ def seed():
                 sec = row[4].strip()
                 
                 # Some sections are like "A,B" or "A/B". Let's handle them.
-                # Actually, if it's "A/B", the simplest is to just create a class called "Branch-Sem-A/B"
-                # The prompt doesn't strictly say to split them. I will just use the string.
                 if sem and sec:
                     class_name = f"{branch}-Sem{sem}-{sec}"
                     if class_name not in classes:
-                        cls = Class(name=class_name, dept_id=dept_obj.id)
+                        cls = Class(name=class_name, dept_id=dept_obj.id, semester=int(sem), section_code=sec)
                         db.add(cls)
                         db.commit()
                         db.refresh(cls)
@@ -136,7 +134,7 @@ def seed():
                 if t_load > 0:
                     key_t = (course, "theory", dept_obj.id)
                     if key_t not in subjects:
-                        sub_t = Subject(name=course, type="theory", dept_id=dept_obj.id, weekly_load=t_load)
+                        sub_t = Subject(name=course, type="theory", dept_id=dept_obj.id, weekly_load=t_load, semester=int(sem) if sem else None)
                         db.add(sub_t)
                         db.commit()
                         db.refresh(sub_t)
@@ -150,7 +148,7 @@ def seed():
                 if p_load > 0:
                     key_p = (course, "lab", dept_obj.id)
                     if key_p not in subjects:
-                        sub_p = Subject(name=course, type="lab", dept_id=dept_obj.id, weekly_load=p_load)
+                        sub_p = Subject(name=course, type="lab", dept_id=dept_obj.id, weekly_load=p_load, semester=int(sem) if sem else None)
                         db.add(sub_p)
                         db.commit()
                         db.refresh(sub_p)
@@ -160,7 +158,7 @@ def seed():
                         current_teacher.subjects.append(subjects[key_p])
                         db.commit()
 
-        print("✨ CSV SEEDING COMPLETE!")
+        print("CSV SEEDING COMPLETE!")
         
         # Diagnostics
         print(f"Total Departments: {len(departments)}")
@@ -171,7 +169,7 @@ def seed():
 
     except Exception as e:
         db.rollback()
-        print(f"\n❌ FATAL ERROR: {str(e)}")
+        print(f"\nFATAL ERROR: {str(e)}")
         traceback.print_exc()
     finally:
         db.close()

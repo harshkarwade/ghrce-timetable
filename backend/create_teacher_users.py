@@ -6,7 +6,7 @@ Run: backend\venv\Scripts\python backend\create_teacher_users.py
 import bcrypt
 from sqlalchemy import create_engine, text
 
-PROD_DB_URL = "postgresql://neondb_owner:npg_WN0IRfyjAmY5@ep-summer-voice-am361anj-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
+PROD_DB_URL = "sqlite:///c:/Users/ASUS/Downloads/GHRCE-AI-Timetable-v3/ghrce-timetable/backend/ghrce_v2.db"
 DEFAULT_PASSWORD = "Teacher@123"
 
 engine = create_engine(PROD_DB_URL)

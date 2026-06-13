@@ -64,6 +64,19 @@ class Teacher(Base):
     subjects       = relationship("Subject", secondary="teacher_subjects", back_populates="teachers")
     timetable_entries = relationship("TimetableEntry", foreign_keys="TimetableEntry.teacher_id", back_populates="teacher")
     attendance_records = relationship("Attendance", back_populates="teacher")
+    preferences    = relationship("TeacherPreference", back_populates="teacher")
+
+# ── TeacherPreference ──────────────────────────────────────────────────────────
+class TeacherPreference(Base):
+    __tablename__ = "teacher_preferences"
+    id            = Column(Integer, primary_key=True, index=True)
+    teacher_id    = Column(Integer, ForeignKey("teachers.id"), nullable=False)
+    day           = Column(String(20)) # Monday, Tuesday, etc.
+    preferred_slot_id = Column(Integer, ForeignKey("time_slots.id"), nullable=True)
+    is_preferred  = Column(Boolean, default=True) # True for preferred, False for "unavailable"
+    preference_weight = Column(Integer, default=1) # Weight for GA fitness function
+
+    teacher       = relationship("Teacher", back_populates="preferences")
 
 # ── Teacher-Subject Association ───────────────────────────────────────────────
 from sqlalchemy import Table
@@ -79,7 +92,10 @@ class Subject(Base):
     id         = Column(Integer, primary_key=True, index=True)
     name       = Column(String(150), nullable=False)
     dept_id    = Column(Integer, ForeignKey("departments.id"))
+    semester   = Column(Integer, nullable=True) # Linked to academic year
     credits    = Column(Integer, default=3)
+    is_core    = Column(Boolean, default=False)
+    required_room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     type       = Column(String(20), default="theory")
     code       = Column(String(20))
     weekly_load= Column(Integer, default=3)
@@ -108,6 +124,7 @@ class Class(Base):
     name       = Column(String(100), nullable=False)
     dept_id    = Column(Integer, ForeignKey("departments.id"))
     semester   = Column(Integer)
+    section_code = Column(String(20), default="")
     strength   = Column(Integer, default=60)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -121,6 +138,7 @@ class Batch(Base):
     __tablename__ = "batches"
     id         = Column(Integer, primary_key=True, index=True)
     name       = Column(String(50), nullable=False)
+    batch_code = Column(String(10)) # A1, A2, etc.
     class_id   = Column(Integer, ForeignKey("classes.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -166,6 +184,12 @@ class TimetableEntry(Base):
     time_slot_id         = Column(Integer, ForeignKey("time_slots.id"))
     is_substituted       = Column(Boolean, default=False)
     original_teacher_id  = Column(Integer, ForeignKey("teachers.id"), nullable=True)
+    
+    subject_shortcode    = Column(String(20))
+    faculty_initials     = Column(String(10))
+    dept_code            = Column(String(20))
+    section_code         = Column(String(20))
+    
     semester_year        = Column(String(20), default="2024-25")
     created_at           = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -233,3 +257,20 @@ class StudentAttendance(Base):
 
     student    = relationship("Student", back_populates="attendance_records")
     timetable_entry = relationship("TimetableEntry")
+
+# ── TeachingAssignment (Source for Requirements) ──────────────────────────────
+class TeachingAssignment(Base):
+    __tablename__ = "teaching_assignments"
+    id         = Column(Integer, primary_key=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    class_id   = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    batch_id   = Column(Integer, ForeignKey("batches.id"), nullable=True) # None for Theory
+    type       = Column(String(20)) # 'theory' or 'lab'
+    weekly_load = Column(Integer, default=3)
+    semester_year = Column(String(20), index=True, default="2024-25")
+
+    teacher    = relationship("Teacher")
+    subject    = relationship("Subject")
+    class_     = relationship("Class")
+    batch      = relationship("Batch")

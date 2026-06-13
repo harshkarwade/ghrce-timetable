@@ -11,7 +11,7 @@ export default function MyWorkload() {
   const [entries, setEntries] = useState([]);
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [semester] = useState("SUMMER 2026");
+  const [semester] = useState("2024-25");
 
   useEffect(() => {
     if (!teacherId) { setLoading(false); return; }

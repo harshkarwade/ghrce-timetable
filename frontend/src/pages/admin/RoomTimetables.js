@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import { getTimetable, getRooms } from "../../services/api";
+import { getTimetable, getRooms, getTimeSlots } from "../../services/api";
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
-const SLOTS = ["09:30 - 10:30","10:30 - 11:30","11:30 - 12:30","12:30 - 01:30","01:30 - 02:30","02:30 - 03:30","03:30 - 04:30","04:30 - 05:30"];
 
 export default function RoomTimetables() {
   const [semester, setSemester] = useState("2024-25");
   const [rooms, setRooms] = useState([]);
+  const [timeSlots, setTimeSlots] = useState([]);
   const [selected, setSelected] = useState(null);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    getTimeSlots().then(r => setTimeSlots(r.data || [])).catch(() => {});
     getRooms().then(r => { setRooms(r.data); if (r.data.length) setSelected(r.data[0]); }).catch(() => {});
   }, []);
 
@@ -25,8 +26,16 @@ export default function RoomTimetables() {
   }, [selected, semester]);
 
   const grid = {};
-  DAYS.forEach(d => { grid[d] = {}; SLOTS.forEach(s => { grid[d][s] = []; }); });
-  entries.forEach(e => { if (grid[e.day] && e.time_slot_label) grid[e.day][e.time_slot_label].push(e); });
+  DAYS.forEach(d => { 
+    grid[d] = {}; 
+    timeSlots.forEach(s => { grid[d][s.label] = []; }); 
+  });
+  
+  entries.forEach(e => { 
+    if (grid[e.day] && e.time_slot_label && grid[e.day][e.time_slot_label]) {
+      grid[e.day][e.time_slot_label].push(e); 
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -72,11 +81,13 @@ export default function RoomTimetables() {
               </tr>
             </thead>
             <tbody>
-              {SLOTS.map((slot, si) => (
-                <tr key={slot} className="hover:bg-teal-500/5 transition-colors">
-                  <td className="p-4 text-gray-500 font-black text-[10px] border-b border-r border-gray-800 bg-gray-950/20 text-center uppercase">{slot}</td>
+              {timeSlots.map((slot, si) => (
+                <tr key={slot.id} className="hover:bg-teal-500/5 transition-colors">
+                  <td className="p-4 text-gray-500 font-black text-[10px] border-b border-r border-gray-800 bg-gray-950/20 text-center uppercase">
+                    {slot.label}
+                  </td>
                   {DAYS.map(day => {
-                    const slotEntries = grid[day][slot];
+                    const slotEntries = grid[day][slot.label] || [];
                     return (
                       <td key={day} className="p-2 border-b border-gray-800 align-top">
                         {loading ? (
@@ -89,12 +100,12 @@ export default function RoomTimetables() {
                                   ? 'bg-gradient-to-br from-amber-900/40 to-orange-950/10 border-amber-500/30 text-amber-100' 
                                   : 'bg-gradient-to-br from-teal-900/40 to-emerald-950/10 border-teal-500/30 text-teal-100'
                               }`}>
-                                <div className="font-black text-[11px] leading-tight mb-1">{e.subject_name}</div>
+                                <div className="font-black text-[11px] leading-tight mb-1">{e.subject_shortcode || e.subject_name}</div>
                                 <div className="text-[10px] font-bold opacity-70 flex items-center gap-1">
                                   <span className="text-[8px]">👥</span> {e.class_name}
                                 </div>
                                 <div className="mt-2 pt-2 border-t border-white/5 flex justify-between items-center">
-                                  <span className="text-[9px] font-black font-mono opacity-50 bg-black/30 px-1.5 py-0.5 rounded italic">{e.teacher_name}</span>
+                                  <span className="text-[9px] font-black font-mono opacity-50 bg-black/30 px-1.5 py-0.5 rounded italic" title={e.teacher_name}>{e.faculty_initials || e.teacher_name}</span>
                                 </div>
                               </div>
                             ))}

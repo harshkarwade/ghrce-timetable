@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { getTimetable, getTeachers } from "../../services/api";
 import useAuthStore from "../../store/authStore";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import toast from "react-hot-toast";
+
+const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444"];
 
 export default function TeacherDashboard() {
   const { teacherId, user } = useAuthStore();
   const [entries, setEntries] = useState([]);
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [semester] = useState("SUMMER 2026");
+  const [semester] = useState("2024-25");
 
   useEffect(() => {
     if (!teacherId) {
@@ -37,6 +40,12 @@ export default function TeacherDashboard() {
   const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const todayEntries = entries.filter((e) => e.day === todayName);
 
+  // Analytics
+  const workloadData = [
+    { name: "Theory", value: entries.filter(e => e.subject_type !== "lab").length },
+    { name: "Laboratory", value: entries.filter(e => e.subject_type === "lab").length },
+  ];
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 bg-[var(--bg-sidebar)]/30 rounded-3xl border border-[var(--border-subtle)]">
@@ -47,7 +56,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-10">
       {/* ── Welcome Section ── */}
       <div className="relative group overflow-hidden bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl p-8 shadow-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-indigo-600/10 transition-all duration-700" />
@@ -93,9 +102,9 @@ export default function TeacherDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* ── Today's Schedule ── */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl shadow-xl overflow-hidden">
+        <div className="lg:col-span-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl shadow-xl overflow-hidden">
           <div className="px-8 py-6 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-sidebar)]/30">
             <h3 className="text-sm font-black text-[var(--text-main)] uppercase tracking-widest flex items-center gap-2">
               <span className="text-indigo-500">⚡</span> Today's Sessions
@@ -105,9 +114,9 @@ export default function TeacherDashboard() {
           
           <div className="p-4">
             {todayEntries.length === 0 ? (
-              <div className="py-16 text-center text-[var(--text-muted)] flex flex-col items-center">
-                <span className="text-4xl mb-3 opacity-20">🍃</span>
-                <p className="text-xs font-bold font-mono">No lectures scheduled for today.</p>
+              <div className="py-20 text-center text-[var(--text-muted)] flex flex-col items-center">
+                <span className="text-5xl mb-4 opacity-20">🍃</span>
+                <p className="text-xs font-bold font-mono tracking-widest uppercase">No lectures scheduled for today.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -138,30 +147,45 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* ── My Courses ── */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl shadow-xl p-8">
-          <h3 className="text-sm font-black text-[var(--text-main)] uppercase tracking-widest mb-6 flex items-center gap-2">
-            <span className="text-indigo-500">📚</span> Academic Workload
-          </h3>
-          {teacher?.subjects?.length > 0 ? (
-            <div className="flex flex-wrap gap-3">
-              {teacher.subjects.map((s) => (
-                <div
-                  key={s.id}
-                  className="group flex flex-col gap-1 px-5 py-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 hover:border-indigo-500/50 transition-all cursor-default"
-                >
-                  <span className="text-[10px] font-bold text-indigo-500/60 uppercase tracking-wider">{s.code || 'COUR'}</span>
-                  <span className="text-sm font-black text-[var(--text-main)]">{s.name}</span>
-                </div>
-              ))}
+        {/* ── Workload Analytics (Chart) ── */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-3xl shadow-xl p-8 flex flex-col">
+            <h3 className="text-sm font-black text-[var(--text-main)] uppercase tracking-widest mb-8 flex items-center gap-2">
+                <span className="text-indigo-500">📊</span> Load Balance
+            </h3>
+            <div className="flex-1 min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={workloadData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={70}
+                            paddingAngle={5}
+                            dataKey="value"
+                            stroke="none"
+                        >
+                            {workloadData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip 
+                            contentStyle={{ background: "#13162a", border: "1px solid #1f2937", borderRadius: "12px", fontSize: "10px", fontWeight: "900" }}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
             </div>
-          ) : (
-            <div className="py-12 text-center text-[var(--text-muted)] italic text-xs font-medium">
-              No subjects assigned yet.
+            <div className="mt-4 grid grid-cols-2 gap-4">
+                {workloadData.map((d, i) => (
+                    <div key={d.name} className="flex flex-col items-center p-3 rounded-2xl bg-[var(--bg-sidebar)]/30 border border-[var(--border-subtle)]">
+                        <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">{d.name}</span>
+                        <span className="text-lg font-black text-[var(--text-main)]" style={{ color: COLORS[i] }}>{d.value}</span>
+                    </div>
+                ))}
             </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
+

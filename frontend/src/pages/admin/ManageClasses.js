@@ -65,105 +65,174 @@ export default function ManageClasses() {
     }
   };
 
-  if (loading) return <div className="p-6 text-gray-400">Loading classes...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8 pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-emerald-500 bg-clip-text text-transparent">Manage Classes & Intake</h1>
-          <p className="text-gray-400 mt-1">Define class strengths (60, 120, 180). Oversized classes will be auto-sectioned by the AI Engine.</p>
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 dark:from-emerald-400 dark:to-cyan-400 tracking-tight">Manage Classes</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">Define intake and branch assignments</p>
+        </div>
+        <div className="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">AI Capacity Planning Active</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 border border-gray-800 bg-gray-900 rounded-xl p-6">
-          <h2 className="text-xl font-semibold mb-4 text-white">
-            {editingId ? "✏️ Edit Class" : "➕ Add New Class"}
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-gray-400 text-xs mb-1">Class Name (e.g. AI-Sem5)</label>
-              <input type="text" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
-                value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-xs mb-1">Department</label>
-              <select className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
-                value={form.dept_id} onChange={e => setForm({...form, dept_id: e.target.value})}>
-                <option value="">Select Department</option>
-                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-400 text-xs mb-1">Semester</label>
-                <input type="number" min="1" max="8" className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
-                  value={form.semester} onChange={e => setForm({...form, semester: parseInt(e.target.value)})} />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Form Column */}
+        <div className="lg:col-span-4">
+          <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800 rounded-2xl p-6 shadow-2xl sticky top-8">
+            <h3 className="text-base font-bold text-gray-200 mb-6 flex items-center gap-2">
+              <span className="text-emerald-400">{editingId ? "✏️" : "➕"}</span>
+              {editingId ? "Modify Class Entity" : "Register New Class"}
+            </h3>
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Class Identifier</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. AI-SC-S5"
+                  className="w-full bg-gray-950 border border-gray-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 rounded-xl p-3 text-sm text-white placeholder:text-gray-700 outline-none transition-all font-medium"
+                  value={form.name} 
+                  onChange={e => setForm({...form, name: e.target.value})} 
+                />
               </div>
-              <div>
-                <label className="block text-emerald-400 text-xs mb-1 font-semibold">Intake / Strength</label>
-                <select className="w-full bg-emerald-900/20 border border-emerald-500/30 rounded p-2 text-emerald-300 focus:outline-none focus:border-emerald-500"
-                  value={form.strength} onChange={e => setForm({...form, strength: parseInt(e.target.value)})}>
-                  <option value={60}>60 (1 Section)</option>
-                  <option value={120}>120 (2 Sections)</option>
-                  <option value={180}>180 (3 Sections)</option>
-                  <option value={240}>240 (4 Sections)</option>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Academic Department</label>
+                <select 
+                  className="w-full bg-gray-950 border border-gray-800 focus:border-emerald-500 rounded-xl p-3 text-sm text-white outline-none transition-all cursor-pointer font-medium"
+                  value={form.dept_id} 
+                  onChange={e => setForm({...form, dept_id: e.target.value})}
+                >
+                  <option value="">Select Branch</option>
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
-            </div>
-            
-            <div className="pt-2 flex gap-2">
-              <button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded transition-colors">
-                {editingId ? "Update Class" : "Save Class"}
-              </button>
-              {editingId && (
-                <button type="button" onClick={() => { setEditingId(null); setForm({name:"", dept_id:"", semester:1, strength:60}); }} 
-                        className="px-4 bg-gray-700 hover:bg-gray-600 rounded text-white transition-colors">
-                  Cancel
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Current Semester</label>
+                  <input 
+                    type="number" 
+                    min="1" max="8" 
+                    className="w-full bg-gray-950 border border-gray-800 focus:border-emerald-500 rounded-xl p-3 text-sm text-white outline-none transition-all font-medium"
+                    value={form.semester} 
+                    onChange={e => setForm({...form, semester: parseInt(e.target.value)})} 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest ml-1">Student Intake</label>
+                   <select 
+                    className="w-full bg-emerald-500/10 border border-emerald-500/20 focus:border-emerald-500 rounded-xl p-3 text-sm text-emerald-400 outline-none transition-all cursor-pointer font-bold"
+                    value={form.strength} 
+                    onChange={e => setForm({...form, strength: parseInt(e.target.value)})}
+                  >
+                    <option value={60}>60 (Std)</option>
+                    <option value={120}>120 (Dbl)</option>
+                    <option value={180}>180 (Tpl)</option>
+                    <option value={240}>240 (Max)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="submit" 
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-widest py-3.5 rounded-xl shadow-lg shadow-emerald-900/20 transition-all transform active:scale-95"
+                >
+                  {editingId ? "Update Record" : "Confirm & Save"}
                 </button>
-              )}
-            </div>
-          </form>
+                {editingId && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setEditingId(null); setForm({name:"", dept_id:"", semester:1, strength:60}); }} 
+                    className="px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-gray-400 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
 
-        <div className="md:col-span-2 border border-gray-800 bg-gray-900/50 rounded-xl overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-800 text-gray-300">
-              <tr>
-                <th className="p-3">Class Name</th>
-                <th className="p-3">Department</th>
-                <th className="p-3">Sem</th>
-                <th className="p-3">Strength</th>
-                <th className="p-3">Auto-Sections</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800/50">
-              {classes.map(c => {
-                const sections = Math.ceil((c.strength || 60) / 60);
-                const dept = departments.find(d => d.id === c.dept_id);
-                return (
-                  <tr key={c.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="p-3 font-medium text-white">{c.name}</td>
-                    <td className="p-3 text-gray-400">{dept?.name || "Unknown"}</td>
-                    <td className="p-3">Sem {c.semester}</td>
-                    <td className="p-3 text-emerald-400 font-semibold">{c.strength || 60}</td>
-                    <td className="p-3 text-blue-400">{sections}</td>
-                    <td className="p-3 text-right space-x-3">
-                      <button onClick={() => handleEdit(c)} className="text-gray-400 hover:text-white transition-colors">Edit</button>
-                      <button onClick={() => handleDelete(c.id)} className="text-red-400 hover:text-red-300 transition-colors">Delete</button>
-                    </td>
+        {/* List Column */}
+        <div className="lg:col-span-8">
+          <div className="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-800 flex justify-between items-center">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Global Class Registry</h3>
+                <span className="text-[10px] font-bold text-gray-500">{classes.length} Entities Total</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="text-[10px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-800/50 bg-gray-900/40">
+                  <tr>
+                    <th className="px-6 py-4">Class Entity</th>
+                    <th className="px-6 py-4">Academic Context</th>
+                    <th className="px-6 py-4">Structure</th>
+                    <th className="px-6 py-4 text-right">Operations</th>
                   </tr>
-                );
-              })}
-              {classes.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="p-6 text-center text-gray-500">No classes found. Please create one.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-gray-800/30">
+                  {classes.map(c => {
+                    const sections = Math.ceil((c.strength || 60) / 60);
+                    const dept = departments.find(d => d.id === c.dept_id);
+                    return (
+                      <tr key={c.id} className="group hover:bg-white/5 transition-all">
+                        <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 font-black text-xs">
+                                    {c.semester}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">{c.name}</div>
+                                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">SEM-{c.semester} Academic</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <span className="text-xs font-bold text-gray-400 bg-gray-950 px-2 py-1 rounded border border-gray-800">{dept?.name || "Unassigned"}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                                <div className="text-xs font-black text-emerald-400/80">{c.strength || 60} Students</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase">{sections} Optimization Units</div>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleEdit(c)} className="p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white transition-all" title="Modify Record">
+                                    ✏️
+                                </button>
+                                <button onClick={() => handleDelete(c.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-400 transition-all" title="Destroy Entity">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {classes.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-12 text-center">
+                          <div className="text-4xl opacity-20 mb-3 grayscale">🏫</div>
+                          <div className="text-xs font-black text-gray-600 uppercase tracking-widest">No matching registry found</div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

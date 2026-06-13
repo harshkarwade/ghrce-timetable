@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     APP_NAME: str = "GHRCE AI Timetable System"
     DEBUG: bool = True
 
+    # GHRCE Institutional Timings
+    FIRST_SLOT_TIME: str = "09:30"
+    SLOT_DURATION_MINUTES: int = 60
+    LUNCH_START: str = "12:30"
+    LUNCH_END: str = "13:30"
+    SLOTS_PER_DAY: int = 8
+
     class Config:
         env_file = ".env"
 
